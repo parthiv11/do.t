@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
+import { useTamboThreadInput } from "@tambo-ai/react";
 import { z } from "zod";
 import {
   Box,
@@ -55,6 +56,8 @@ const ClusterCreate: React.FC<ClusterCreateProps> = (props) => {
     onSuccess,
   } = props || {};
 
+  const { setValue, submit } = useTamboThreadInput();
+
   const [form, setForm] = React.useState({
     name: defaultName,
     region: defaultRegion,
@@ -90,13 +93,6 @@ const ClusterCreate: React.FC<ClusterCreateProps> = (props) => {
       // API call would go here
       await new Promise((r) => setTimeout(r, 1500));
       setSuccess(true);
-      onSuccess?.({
-        name: form.name,
-        region: form.region,
-        version: form.version,
-        nodeCount: form.nodeCount,
-        nodeSize: form.nodeSize,
-      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error creating cluster");
     } finally {

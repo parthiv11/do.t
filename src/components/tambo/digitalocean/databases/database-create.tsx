@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
+import { useTamboComponentState } from "@tambo-ai/react";
 import { z } from "zod";
 import {
   Database,
@@ -17,7 +18,6 @@ type DatabaseCreateProps = {
   defaultEngine?: string;
   defaultRegion?: string;
   defaultSize?: string;
-  onSuccess?: (data: { name: string; engine: string; region: string; size: string }) => void;
 };
 
 const ENGINES = [
@@ -50,33 +50,28 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
     defaultEngine = "pg",
     defaultRegion = "nyc1",
     defaultSize = "db-s-1vcpu-1gb",
-    onSuccess,
   } = props || {};
 
-  const [form, setForm] = React.useState({
-    name: defaultName,
-    engine: defaultEngine,
-    region: defaultRegion,
-    size: defaultSize,
-  });
-
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [success, setSuccess] = React.useState(false);
+  // Use useTamboComponentState so AI can see and update state
+  const [name, setName] = useTamboComponentState("name", defaultName, defaultName);
+  const [engine, setEngine] = useTamboComponentState("engine", defaultEngine, defaultEngine);
+  const [region, setRegion] = useTamboComponentState("region", defaultRegion, defaultRegion);
+  const [size, setSize] = useTamboComponentState("size", defaultSize, defaultSize);
+  const [loading, setLoading] = useTamboComponentState("loading", false, false);
+  const [error, setError] = useTamboComponentState<string | null>("error", null, null);
+  const [success, setSuccess] = useTamboComponentState("success", false, false);
   const [expandedSection, setExpandedSection] = React.useState<string | null>("engine");
 
-  // Update form when default props change (handles streaming)
+  // Update state when default props change (handles streaming)
   React.useEffect(() => {
-    setForm((prev) => ({
-      name: defaultName || prev.name,
-      engine: defaultEngine || prev.engine,
-      region: defaultRegion || prev.region,
-      size: defaultSize || prev.size,
-    }));
-  }, [defaultName, defaultEngine, defaultRegion, defaultSize]);
+    if (defaultName) setName(defaultName);
+    if (defaultEngine) setEngine(defaultEngine);
+    if (defaultRegion) setRegion(defaultRegion);
+    if (defaultSize) setSize(defaultSize);
+  }, [defaultName, defaultEngine, defaultRegion, defaultSize, setName, setEngine, setRegion, setSize]);
 
   const handleCreate = async () => {
-    if (!form.name.trim()) {
+    if (!name?.trim()) {
       setError("Database name is required");
       return;
     }
@@ -85,12 +80,6 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
     try {
       await new Promise((r) => setTimeout(r, 1500));
       setSuccess(true);
-      onSuccess?.({
-        name: form.name,
-        engine: form.engine,
-        region: form.region,
-        size: form.size,
-      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error creating database");
     } finally {
@@ -107,20 +96,20 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
           </div>
           <h3 className="text-xl font-semibold mb-2">Database Created!</h3>
           <p className="text-gray-400 mb-4">
-            Your database <span className="text-white font-medium">{form.name}</span> is being provisioned.
+            Your database <span className="text-white font-medium">{name}</span> is being provisioned.
           </p>
           <div className="bg-[#161b22] rounded-lg p-4 text-left text-sm space-y-2">
             <div className="flex justify-between">
               <span className="text-gray-400">Engine</span>
-              <span>{ENGINES.find((e) => e.value === form.engine)?.label}</span>
+              <span>{ENGINES.find((e) => e.value === engine)?.label}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Region</span>
-              <span>{form.region}</span>
+              <span>{region}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Size</span>
-              <span>{form.size}</span>
+              <span>{size}</span>
             </div>
           </div>
         </div>
@@ -152,8 +141,8 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
         <div>
           <label className="block text-sm font-medium mb-2">Database Name</label>
           <input
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             placeholder="my-database"
             className="w-full px-4 py-3 rounded-md border border-gray-600 bg-[#161b22] text-white placeholder-gray-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none"
           />
@@ -167,24 +156,24 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
           >
             <span>Database Engine</span>
             <div className="flex items-center gap-2 text-gray-400">
-              <span>{ENGINES.find((e) => e.value === form.engine)?.label}</span>
+              <span>{ENGINES.find((e) => e.value === engine)?.label}</span>
               <ChevronDown className={`w-4 h-4 transition-transform ${expandedSection === "engine" ? "rotate-180" : ""}`} />
             </div>
           </button>
           {expandedSection === "engine" && (
             <div className="grid grid-cols-2 gap-2">
-              {ENGINES.map((engine) => (
+              {ENGINES.map((e) => (
                 <button
-                  key={engine.value}
-                  onClick={() => setForm((f) => ({ ...f, engine: engine.value }))}
+                  key={e.value}
+                  onClick={() => setEngine(e.value)}
                   className={`px-4 py-3 rounded-md border text-left transition-colors ${
-                    form.engine === engine.value
+                    engine === e.value
                       ? "border-cyan-500 bg-cyan-500/10 text-white"
                       : "border-gray-600 bg-[#161b22] text-gray-300 hover:border-gray-500"
                   }`}
                 >
-                  <div className="font-medium">{engine.label}</div>
-                  <div className="text-xs text-gray-400">v{engine.version}</div>
+                  <div className="font-medium">{e.label}</div>
+                  <div className="text-xs text-gray-400">v{e.version}</div>
                 </button>
               ))}
             </div>
@@ -199,24 +188,24 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
           >
             <span>Region</span>
             <div className="flex items-center gap-2 text-gray-400">
-              <span>{REGIONS.find((r) => r.value === form.region)?.label}</span>
+              <span>{REGIONS.find((r) => r.value === region)?.label}</span>
               <ChevronDown className={`w-4 h-4 transition-transform ${expandedSection === "region" ? "rotate-180" : ""}`} />
             </div>
           </button>
           {expandedSection === "region" && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {REGIONS.map((region) => (
+              {REGIONS.map((r) => (
                 <button
-                  key={region.value}
-                  onClick={() => setForm((f) => ({ ...f, region: region.value }))}
+                  key={r.value}
+                  onClick={() => setRegion(r.value)}
                   className={`px-3 py-2 rounded-md border text-left text-sm transition-colors ${
-                    form.region === region.value
+                    region === r.value
                       ? "border-cyan-500 bg-cyan-500/10 text-white"
                       : "border-gray-600 bg-[#161b22] text-gray-300 hover:border-gray-500"
                   }`}
                 >
-                  <span className="mr-2">{region.flag}</span>
-                  {region.label}
+                  <span className="mr-2">{r.flag}</span>
+                  {r.label}
                 </button>
               ))}
             </div>
@@ -231,31 +220,31 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
           >
             <span>Size</span>
             <div className="flex items-center gap-2 text-gray-400">
-              <span>{SIZES.find((s) => s.value === form.size)?.ram}</span>
+              <span>{SIZES.find((s) => s.value === size)?.ram}</span>
               <ChevronDown className={`w-4 h-4 transition-transform ${expandedSection === "size" ? "rotate-180" : ""}`} />
             </div>
           </button>
           {expandedSection === "size" && (
             <div className="space-y-2">
-              {SIZES.map((size) => (
+              {SIZES.map((s) => (
                 <button
-                  key={size.value}
-                  onClick={() => setForm((f) => ({ ...f, size: size.value }))}
+                  key={s.value}
+                  onClick={() => setSize(s.value)}
                   className={`w-full px-4 py-3 rounded-md border text-left transition-colors ${
-                    form.size === size.value
+                    size === s.value
                       ? "border-cyan-500 bg-cyan-500/10"
                       : "border-gray-600 bg-[#161b22] hover:border-gray-500"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="font-medium">{size.cpu}</span>
+                      <span className="font-medium">{s.cpu}</span>
                       <span className="text-gray-400 mx-2">·</span>
-                      <span className="text-gray-300">{size.ram}</span>
+                      <span className="text-gray-300">{s.ram}</span>
                       <span className="text-gray-400 mx-2">·</span>
-                      <span className="text-gray-300">{size.storage}</span>
+                      <span className="text-gray-300">{s.storage}</span>
                     </div>
-                    <span className="text-cyan-400 font-medium">{size.price}</span>
+                    <span className="text-cyan-400 font-medium">{s.price}</span>
                   </div>
                 </button>
               ))}
@@ -267,11 +256,11 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
       {/* Footer */}
       <div className="px-6 py-4 border-t border-gray-700 flex items-center justify-between bg-[#161b22]">
         <div className="text-sm text-gray-400">
-          {SIZES.find((s) => s.value === form.size)?.price}
+          {SIZES.find((s) => s.value === size)?.price}
         </div>
         <button
           onClick={() => void handleCreate()}
-          disabled={loading || !form.name.trim()}
+          disabled={loading || !name?.trim()}
           className="flex items-center gap-2 px-6 py-2.5 rounded-md bg-cyan-600 hover:bg-cyan-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -285,7 +274,7 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
 export const databaseCreateComponent: TamboComponent = {
   name: "databaseCreate",
   description:
-    "Render a form to create a new managed database cluster. ALWAYS render this when user wants to create a database. Supports PostgreSQL, MySQL, Redis, MongoDB.",
+    "Render a form to create a new managed database cluster. ALWAYS render this when user wants to create a database. Supports PostgreSQL, MySQL, Redis, MongoDB. The AI can see and update form state including name, engine, region, size, loading, error, and success status.",
   component: DatabaseCreate,
   propsSchema: z.object({
     title: z.string().optional(),
@@ -293,6 +282,5 @@ export const databaseCreateComponent: TamboComponent = {
     defaultEngine: z.string().optional().describe("pg, mysql, redis, or mongodb"),
     defaultRegion: z.string().optional(),
     defaultSize: z.string().optional(),
-    onSuccess: z.function().optional().describe("Callback when database is created. The AI will receive the creation details."),
   }),
 };

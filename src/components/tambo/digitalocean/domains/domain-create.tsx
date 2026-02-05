@@ -38,7 +38,6 @@ const DomainCreate: React.FC<DomainCreateProps> = (props) => {
     try {
       await new Promise((r) => setTimeout(r, 1500));
       setSuccess(true);
-      onSuccess?.({ name: form.name, ipAddress: form.ipAddress });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error adding domain");
     } finally {

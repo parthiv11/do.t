@@ -73,12 +73,6 @@ const VolumeCreate: React.FC<VolumeCreateProps> = (props) => {
     try {
       await new Promise((r) => setTimeout(r, 1500));
       setSuccess(true);
-      onSuccess?.({
-        name: form.name,
-        size: form.size,
-        region: form.region,
-        filesystem: form.filesystem,
-      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error creating volume");
     } finally {

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
+import { useTamboComponentState } from "@tambo-ai/react";
 import { z } from "zod";
 import { useInfraStore, type DropletSummary } from "@/lib/infra-store";
 import {
@@ -19,7 +20,6 @@ type DropletCreateProps = {
   defaultSize?: string;
   defaultImage?: string;
   defaultTags?: string[];
-  onSuccess?: (data: DropletSummary) => void;
 };
 
 const REGIONS = [
@@ -90,38 +90,33 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
     defaultSize = "s-1vcpu-1gb",
     defaultImage = "ubuntu-24-04-x64",
     defaultTags = [],
-    onSuccess,
   } = props || {};
 
   const setDroplets = useInfraStore((s) => s.setDroplets);
   const droplets = useInfraStore((s) => s.droplets);
 
-  const [form, setForm] = React.useState({
-    name: defaultName,
-    region: defaultRegion,
-    size: defaultSize,
-    image: defaultImage,
-    tags: defaultTags.join(", "),
-  });
-
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [success, setSuccess] = React.useState<DropletSummary | null>(null);
+  // Use useTamboComponentState so AI can see and update state
+  const [name, setName] = useTamboComponentState("name", defaultName, defaultName);
+  const [region, setRegion] = useTamboComponentState("region", defaultRegion, defaultRegion);
+  const [size, setSize] = useTamboComponentState("size", defaultSize, defaultSize);
+  const [image, setImage] = useTamboComponentState("image", defaultImage, defaultImage);
+  const [tags, setTags] = useTamboComponentState("tags", defaultTags.join(", "), defaultTags.join(", "));
+  const [loading, setLoading] = useTamboComponentState("loading", false, false);
+  const [error, setError] = useTamboComponentState<string | null>("error", null, null);
+  const [success, setSuccess] = useTamboComponentState("success", false, false);
   const [expandedSection, setExpandedSection] = React.useState<string | null>("region");
 
-  // Update form when default props change (handles streaming)
+  // Update state when default props change (handles streaming)
   React.useEffect(() => {
-    setForm((prev) => ({
-      name: defaultName || prev.name,
-      region: defaultRegion || prev.region,
-      size: defaultSize || prev.size,
-      image: defaultImage || prev.image,
-      tags: defaultTags?.join(", ") || prev.tags,
-    }));
-  }, [defaultName, defaultRegion, defaultSize, defaultImage, defaultTags]);
+    if (defaultName) setName(defaultName);
+    if (defaultRegion) setRegion(defaultRegion);
+    if (defaultSize) setSize(defaultSize);
+    if (defaultImage) setImage(defaultImage);
+    if (defaultTags) setTags(defaultTags.join(", "));
+  }, [defaultName, defaultRegion, defaultSize, defaultImage, defaultTags, setName, setRegion, setSize, setImage, setTags]);
 
   const handleCreate = async () => {
-    if (!form.name.trim()) {
+    if (!name?.trim()) {
       setError("Name is required");
       return;
     }
@@ -129,15 +124,14 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
     setError(null);
     try {
       const created = await createDropletApi({
-        name: form.name.trim(),
-        region: form.region,
-        size: form.size,
-        image: form.image,
-        tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+        name: name?.trim() || "",
+        region: region || "nyc1",
+        size: size || "s-1vcpu-1gb",
+        image: image || "ubuntu-24-04-x64",
+        tags: tags?.split(",").map((t) => t.trim()).filter(Boolean) || [],
       });
       setDroplets([created, ...droplets]);
-      setSuccess(created);
-      onSuccess?.(created);
+      setSuccess(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error creating droplet");
     } finally {
@@ -154,24 +148,20 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
           </div>
           <h3 className="text-xl font-semibold mb-2">Droplet Created!</h3>
           <p className="text-gray-400 mb-4">
-            Your droplet <span className="text-white font-medium">{success.name}</span> is being provisioned.
+            Your droplet <span className="text-white font-medium">{name}</span> is being provisioned.
           </p>
           <div className="bg-[#161b22] rounded-lg p-4 text-left text-sm space-y-2">
             <div className="flex justify-between">
-              <span className="text-gray-400">ID</span>
-              <span className="font-mono">{success.id}</span>
-            </div>
-            <div className="flex justify-between">
               <span className="text-gray-400">Region</span>
-              <span>{success.region}</span>
+              <span>{region}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Size</span>
-              <span>{success.size}</span>
+              <span>{size}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Status</span>
-              <span className="text-yellow-400">{success.status}</span>
+              <span className="text-gray-400">Image</span>
+              <span>{image}</span>
             </div>
           </div>
         </div>
@@ -203,8 +193,8 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
         <div>
           <label className="block text-sm font-medium mb-2">Hostname</label>
           <input
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             placeholder="my-droplet"
             className="w-full px-4 py-3 rounded-md border border-gray-600 bg-[#161b22] text-white placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
           />
@@ -218,24 +208,24 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
           >
             <span>Region</span>
             <div className="flex items-center gap-2 text-gray-400">
-              <span>{REGIONS.find((r) => r.value === form.region)?.label || form.region}</span>
+              <span>{REGIONS.find((r) => r.value === region)?.label || region}</span>
               <ChevronDown className={`w-4 h-4 transition-transform ${expandedSection === "region" ? "rotate-180" : ""}`} />
             </div>
           </button>
           {expandedSection === "region" && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {REGIONS.map((region) => (
+              {REGIONS.map((r) => (
                 <button
-                  key={region.value}
-                  onClick={() => setForm((f) => ({ ...f, region: region.value }))}
+                  key={r.value}
+                  onClick={() => setRegion(r.value)}
                   className={`px-3 py-2 rounded-md border text-left text-sm transition-colors ${
-                    form.region === region.value
+                    region === r.value
                       ? "border-blue-500 bg-blue-500/10 text-white"
                       : "border-gray-600 bg-[#161b22] text-gray-300 hover:border-gray-500"
                   }`}
                 >
-                  <span className="mr-2">{region.flag}</span>
-                  {region.label}
+                  <span className="mr-2">{r.flag}</span>
+                  {r.label}
                 </button>
               ))}
             </div>
@@ -250,29 +240,29 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
           >
             <span>Size</span>
             <div className="flex items-center gap-2 text-gray-400">
-              <span>{SIZES.find((s) => s.value === form.size)?.ram || form.size}</span>
+              <span>{SIZES.find((s) => s.value === size)?.ram || size}</span>
               <ChevronDown className={`w-4 h-4 transition-transform ${expandedSection === "size" ? "rotate-180" : ""}`} />
             </div>
           </button>
           {expandedSection === "size" && (
             <div className="space-y-2">
-              {SIZES.map((size) => (
+              {SIZES.map((s) => (
                 <button
-                  key={size.value}
-                  onClick={() => setForm((f) => ({ ...f, size: size.value }))}
+                  key={s.value}
+                  onClick={() => setSize(s.value)}
                   className={`w-full px-4 py-3 rounded-md border text-left transition-colors ${
-                    form.size === size.value
+                    size === s.value
                       ? "border-blue-500 bg-blue-500/10"
                       : "border-gray-600 bg-[#161b22] hover:border-gray-500"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="font-medium">{size.cpu}</span>
+                      <span className="font-medium">{s.cpu}</span>
                       <span className="text-gray-400 mx-2">·</span>
-                      <span className="text-gray-300">{size.ram}</span>
+                      <span className="text-gray-300">{s.ram}</span>
                     </div>
-                    <span className="text-blue-400 font-medium">{size.price}</span>
+                    <span className="text-blue-400 font-medium">{s.price}</span>
                   </div>
                 </button>
               ))}
@@ -288,24 +278,24 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
           >
             <span>Image</span>
             <div className="flex items-center gap-2 text-gray-400">
-              <span>{IMAGES.find((i) => i.value === form.image)?.label || form.image}</span>
+              <span>{IMAGES.find((i) => i.value === image)?.label || image}</span>
               <ChevronDown className={`w-4 h-4 transition-transform ${expandedSection === "image" ? "rotate-180" : ""}`} />
             </div>
           </button>
           {expandedSection === "image" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {IMAGES.map((image) => (
+              {IMAGES.map((i) => (
                 <button
-                  key={image.value}
-                  onClick={() => setForm((f) => ({ ...f, image: image.value }))}
+                  key={i.value}
+                  onClick={() => setImage(i.value)}
                   className={`px-4 py-3 rounded-md border text-left transition-colors ${
-                    form.image === image.value
+                    image === i.value
                       ? "border-blue-500 bg-blue-500/10"
                       : "border-gray-600 bg-[#161b22] hover:border-gray-500"
                   }`}
                 >
-                  <span className="mr-2">{image.icon}</span>
-                  {image.label}
+                  <span className="mr-2">{i.icon}</span>
+                  {i.label}
                 </button>
               ))}
             </div>
@@ -316,8 +306,8 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
         <div>
           <label className="block text-sm font-medium mb-2">Tags (optional)</label>
           <input
-            value={form.tags}
-            onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
             placeholder="web, production"
             className="w-full px-4 py-3 rounded-md border border-gray-600 bg-[#161b22] text-white placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
           />
@@ -327,11 +317,11 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
       {/* Footer */}
       <div className="px-6 py-4 border-t border-gray-700 flex items-center justify-between bg-[#161b22]">
         <div className="text-sm text-gray-400">
-          {SIZES.find((s) => s.value === form.size)?.price || ""}
+          {SIZES.find((s) => s.value === size)?.price || ""}
         </div>
         <button
           onClick={() => void handleCreate()}
-          disabled={loading || !form.name.trim()}
+          disabled={loading || !name?.trim()}
           className="flex items-center gap-2 px-6 py-2.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -345,7 +335,7 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
 export const dropletCreateComponent: TamboComponent = {
   name: "dropletCreate",
   description:
-    "Render a DigitalOcean-style form to create a new droplet. ALWAYS render this immediately when user wants to create a droplet. Pass user preferences as props. Sizes: s-1vcpu-512mb-10gb (smallest), s-1vcpu-1gb, s-2vcpu-4gb. Regions: nyc1, sfo3, lon1, fra1, sgp1.",
+    "Render a DigitalOcean-style form to create a new droplet. ALWAYS render this immediately when user wants to create a droplet. Pass user preferences as props. Sizes: s-1vcpu-512mb-10gb (smallest), s-1vcpu-1gb, s-2vcpu-4gb. Regions: nyc1, sfo3, lon1, fra1, sgp1. The AI can see and update form state including name, region, size, image, tags, loading, error, and success status.",
   component: DropletCreate,
   propsSchema: z.object({
     title: z.string().optional(),
@@ -354,6 +344,5 @@ export const dropletCreateComponent: TamboComponent = {
     defaultSize: z.string().optional().describe("Pre-select size"),
     defaultImage: z.string().optional().describe("Pre-select image"),
     defaultTags: z.array(z.string()).optional(),
-    onSuccess: z.function().optional().describe("Callback when droplet is created. The AI will receive the creation details."),
   }),
 };
