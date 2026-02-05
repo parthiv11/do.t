@@ -11,6 +11,7 @@ type VolumeCreateProps = {
   defaultSize?: number;
   defaultRegion?: string;
   defaultFilesystem?: string;
+  onSuccess?: (data: { name: string; size: number; region: string; filesystem: string }) => void;
 };
 
 const REGIONS = [
@@ -35,6 +36,7 @@ const VolumeCreate: React.FC<VolumeCreateProps> = (props) => {
     defaultSize = 100,
     defaultRegion = "nyc1",
     defaultFilesystem = "ext4",
+    onSuccess,
   } = props || {};
 
   const [form, setForm] = React.useState({
@@ -71,6 +73,12 @@ const VolumeCreate: React.FC<VolumeCreateProps> = (props) => {
     try {
       await new Promise((r) => setTimeout(r, 1500));
       setSuccess(true);
+      onSuccess?.({
+        name: form.name,
+        size: form.size,
+        region: form.region,
+        filesystem: form.filesystem,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error creating volume");
     } finally {
@@ -228,5 +236,6 @@ export const volumeCreateComponent: TamboComponent = {
     defaultSize: z.number().optional().describe("Size in GB"),
     defaultRegion: z.string().optional(),
     defaultFilesystem: z.string().optional().describe("ext4 or xfs"),
+    onSuccess: z.function().optional().describe("Callback when volume is created. The AI will receive the creation details."),
   }),
 };

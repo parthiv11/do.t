@@ -18,6 +18,7 @@ type ClusterCreateProps = {
   defaultVersion?: string;
   defaultNodeCount?: number;
   defaultNodeSize?: string;
+  onSuccess?: (data: { name: string; region: string; version: string; nodeCount: number; nodeSize: string }) => void;
 };
 
 const REGIONS = [
@@ -51,6 +52,7 @@ const ClusterCreate: React.FC<ClusterCreateProps> = (props) => {
     defaultVersion = "1.29.1-do.0",
     defaultNodeCount = 3,
     defaultNodeSize = "s-2vcpu-4gb",
+    onSuccess,
   } = props || {};
 
   const [form, setForm] = React.useState({
@@ -88,6 +90,13 @@ const ClusterCreate: React.FC<ClusterCreateProps> = (props) => {
       // API call would go here
       await new Promise((r) => setTimeout(r, 1500));
       setSuccess(true);
+      onSuccess?.({
+        name: form.name,
+        region: form.region,
+        version: form.version,
+        nodeCount: form.nodeCount,
+        nodeSize: form.nodeSize,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error creating cluster");
     } finally {
@@ -290,5 +299,6 @@ export const clusterCreateComponent: TamboComponent = {
     defaultVersion: z.string().optional().describe("Pre-select K8s version"),
     defaultNodeCount: z.number().optional().describe("Pre-fill node count"),
     defaultNodeSize: z.string().optional().describe("Pre-select node size"),
+    onSuccess: z.function().optional().describe("Callback when cluster is created. The AI will receive the creation details."),
   }),
 };

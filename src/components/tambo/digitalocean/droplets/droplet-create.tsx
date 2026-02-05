@@ -19,6 +19,7 @@ type DropletCreateProps = {
   defaultSize?: string;
   defaultImage?: string;
   defaultTags?: string[];
+  onSuccess?: (data: DropletSummary) => void;
 };
 
 const REGIONS = [
@@ -89,6 +90,7 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
     defaultSize = "s-1vcpu-1gb",
     defaultImage = "ubuntu-24-04-x64",
     defaultTags = [],
+    onSuccess,
   } = props || {};
 
   const setDroplets = useInfraStore((s) => s.setDroplets);
@@ -135,6 +137,7 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
       });
       setDroplets([created, ...droplets]);
       setSuccess(created);
+      onSuccess?.(created);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error creating droplet");
     } finally {
@@ -351,5 +354,6 @@ export const dropletCreateComponent: TamboComponent = {
     defaultSize: z.string().optional().describe("Pre-select size"),
     defaultImage: z.string().optional().describe("Pre-select image"),
     defaultTags: z.array(z.string()).optional(),
+    onSuccess: z.function().optional().describe("Callback when droplet is created. The AI will receive the creation details."),
   }),
 };

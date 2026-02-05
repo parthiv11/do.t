@@ -8,6 +8,7 @@ import { Shield, Loader2, CheckCircle2, AlertCircle, Plus, Trash2 } from "lucide
 type FirewallCreateProps = {
   title?: string;
   defaultName?: string;
+  onSuccess?: (data: { name: string }) => void;
 };
 
 type Rule = {
@@ -18,7 +19,7 @@ type Rule = {
 };
 
 const FirewallCreate: React.FC<FirewallCreateProps> = (props) => {
-  const { title = "Create Firewall", defaultName = "" } = props || {};
+  const { title = "Create Firewall", defaultName = "", onSuccess } = props || {};
 
   const [form, setForm] = React.useState({ name: defaultName });
   const [inboundRules, setInboundRules] = React.useState<Rule[]>([
@@ -58,6 +59,7 @@ const FirewallCreate: React.FC<FirewallCreateProps> = (props) => {
     try {
       await new Promise((r) => setTimeout(r, 1500));
       setSuccess(true);
+      onSuccess?.({ name: form.name });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error creating firewall");
     } finally {
@@ -179,5 +181,6 @@ export const firewallCreateComponent: TamboComponent = {
   propsSchema: z.object({
     title: z.string().optional(),
     defaultName: z.string().optional(),
+    onSuccess: z.function().optional().describe("Callback when firewall is created. The AI will receive the creation details."),
   }),
 };

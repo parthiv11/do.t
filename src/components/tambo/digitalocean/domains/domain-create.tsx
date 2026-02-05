@@ -9,10 +9,11 @@ type DomainCreateProps = {
   title?: string;
   defaultName?: string;
   defaultIpAddress?: string;
+  onSuccess?: (data: { name: string; ipAddress?: string }) => void;
 };
 
 const DomainCreate: React.FC<DomainCreateProps> = (props) => {
-  const { title = "Add Domain", defaultName = "", defaultIpAddress = "" } = props || {};
+  const { title = "Add Domain", defaultName = "", defaultIpAddress = "", onSuccess } = props || {};
 
   const [form, setForm] = React.useState({ name: defaultName, ipAddress: defaultIpAddress });
   const [loading, setLoading] = React.useState(false);
@@ -37,6 +38,7 @@ const DomainCreate: React.FC<DomainCreateProps> = (props) => {
     try {
       await new Promise((r) => setTimeout(r, 1500));
       setSuccess(true);
+      onSuccess?.({ name: form.name, ipAddress: form.ipAddress });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error adding domain");
     } finally {
@@ -123,5 +125,6 @@ export const domainCreateComponent: TamboComponent = {
     title: z.string().optional(),
     defaultName: z.string().optional(),
     defaultIpAddress: z.string().optional(),
+    onSuccess: z.function().optional().describe("Callback when domain is added. The AI will receive the creation details."),
   }),
 };

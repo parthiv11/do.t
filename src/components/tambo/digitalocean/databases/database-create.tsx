@@ -17,6 +17,7 @@ type DatabaseCreateProps = {
   defaultEngine?: string;
   defaultRegion?: string;
   defaultSize?: string;
+  onSuccess?: (data: { name: string; engine: string; region: string; size: string }) => void;
 };
 
 const ENGINES = [
@@ -49,6 +50,7 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
     defaultEngine = "pg",
     defaultRegion = "nyc1",
     defaultSize = "db-s-1vcpu-1gb",
+    onSuccess,
   } = props || {};
 
   const [form, setForm] = React.useState({
@@ -83,6 +85,12 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
     try {
       await new Promise((r) => setTimeout(r, 1500));
       setSuccess(true);
+      onSuccess?.({
+        name: form.name,
+        engine: form.engine,
+        region: form.region,
+        size: form.size,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error creating database");
     } finally {
@@ -285,5 +293,6 @@ export const databaseCreateComponent: TamboComponent = {
     defaultEngine: z.string().optional().describe("pg, mysql, redis, or mongodb"),
     defaultRegion: z.string().optional(),
     defaultSize: z.string().optional(),
+    onSuccess: z.function().optional().describe("Callback when database is created. The AI will receive the creation details."),
   }),
 };
