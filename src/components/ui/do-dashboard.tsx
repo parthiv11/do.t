@@ -563,8 +563,8 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
         {/* Branding */}
         <div className="p-4 border-b border-[#21262d]">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">T</span>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+              <img src="/logo.png" alt="DO.T" className="w-full h-full object-contain" />
             </div>
             <div className="flex flex-col">
               <span className="font-semibold text-sm leading-tight">DO.T</span>
