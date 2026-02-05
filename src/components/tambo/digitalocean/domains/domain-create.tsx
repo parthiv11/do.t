@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
+import { useTamboComponentState } from "@tambo-ai/react";
 import { z } from "zod";
 import { Globe, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
@@ -9,40 +10,46 @@ type DomainCreateProps = {
   title?: string;
   defaultName?: string;
   defaultIpAddress?: string;
-  onSuccess?: (data: { name: string; ipAddress?: string }) => void;
 };
 
 const DomainCreate: React.FC<DomainCreateProps> = (props) => {
-  const { title = "Add Domain", defaultName = "", defaultIpAddress = "", onSuccess } = props || {};
+  const { title = "Add Domain", defaultName = "", defaultIpAddress = "" } = props || {};
 
-  const [form, setForm] = React.useState({ name: defaultName, ipAddress: defaultIpAddress });
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [success, setSuccess] = React.useState(false);
+  // Use useTamboComponentState so AI can see and update state
+  const [name, setName] = useTamboComponentState("name", defaultName, defaultName);
+  const [ipAddress, setIpAddress] = useTamboComponentState("ipAddress", defaultIpAddress, defaultIpAddress);
+  const [submitRequested, setSubmitRequested] = useTamboComponentState("submitRequested", false, false);
+  const [loading, setLoading] = useTamboComponentState("loading", false, false);
+  const [error, setError] = useTamboComponentState<string | null>("error", null, null);
+  const [success, setSuccess] = useTamboComponentState("success", false, false);
 
-  // Update form when default props change (handles streaming)
-  React.useEffect(() => {
-    setForm((prev) => ({
-      name: defaultName || prev.name,
-      ipAddress: defaultIpAddress || prev.ipAddress,
-    }));
-  }, [defaultName, defaultIpAddress]);
-
-  const handleCreate = async () => {
-    if (!form.name.trim()) {
+  // Handle user clicking Create - AI will see submitRequested and call MCP tool
+  const handleCreate = () => {
+    if (!name?.trim()) {
       setError("Domain name is required");
       return;
     }
-    setLoading(true);
     setError(null);
-    try {
-      await new Promise((r) => setTimeout(r, 1500));
-      setSuccess(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error adding domain");
-    } finally {
-      setLoading(false);
-    }
+    setSubmitRequested(true);
+  };
+
+  // AI calls this via MCP to set loading state
+  const setSubmitting = (value: boolean) => {
+    setLoading(value);
+  };
+
+  // AI calls this via MCP after successful creation
+  const markSuccess = () => {
+    setSubmitRequested(false);
+    setLoading(false);
+    setSuccess(true);
+  };
+
+  // AI calls this via MCP on error
+  const markError = (message: string) => {
+    setSubmitRequested(false);
+    setLoading(false);
+    setError(message);
   };
 
   if (success) {
@@ -54,7 +61,7 @@ const DomainCreate: React.FC<DomainCreateProps> = (props) => {
           </div>
           <h3 className="text-xl font-semibold mb-2">Domain Added!</h3>
           <p className="text-gray-400">
-            <span className="text-white font-medium">{form.name}</span> has been added to your account.
+            <span className="text-white font-medium">{name}</span> has been added to your account.
           </p>
         </div>
       </div>
@@ -84,8 +91,8 @@ const DomainCreate: React.FC<DomainCreateProps> = (props) => {
         <div>
           <label className="block text-sm font-medium mb-2">Domain Name</label>
           <input
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             placeholder="example.com"
             className="w-full px-4 py-3 rounded-md border border-gray-600 bg-[#161b22] text-white placeholder-gray-500 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none"
           />
@@ -93,8 +100,8 @@ const DomainCreate: React.FC<DomainCreateProps> = (props) => {
         <div>
           <label className="block text-sm font-medium mb-2">IP Address (optional)</label>
           <input
-            value={form.ipAddress}
-            onChange={(e) => setForm((f) => ({ ...f, ipAddress: e.target.value }))}
+            value={ipAddress}
+            onChange={(e) => setIpAddress(e.target.value)}
             placeholder="192.168.1.1"
             className="w-full px-4 py-3 rounded-md border border-gray-600 bg-[#161b22] text-white placeholder-gray-500 focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none"
           />
@@ -104,12 +111,12 @@ const DomainCreate: React.FC<DomainCreateProps> = (props) => {
 
       <div className="px-6 py-4 border-t border-gray-700 flex justify-end bg-[#161b22]">
         <button
-          onClick={() => void handleCreate()}
-          disabled={loading || !form.name.trim()}
+          onClick={handleCreate}
+          disabled={loading || !name?.trim() || submitRequested}
           className="flex items-center gap-2 px-6 py-2.5 rounded-md bg-green-600 hover:bg-green-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          Add Domain
+          {submitRequested ? "Waiting for AI..." : "Add Domain"}
         </button>
       </div>
     </div>
@@ -118,12 +125,11 @@ const DomainCreate: React.FC<DomainCreateProps> = (props) => {
 
 export const domainCreateComponent: TamboComponent = {
   name: "domainCreate",
-  description: "Render a form to add a new domain for DNS management. ALWAYS render this when user wants to add a domain.",
+  description: "Render a form to add a new domain for DNS management. ALWAYS render this when user wants to add a domain. The AI can see and update form state including name, ipAddress. When submitRequested is true, the AI MUST call the createDomain MCP tool with the form values (name, ipAddress). After calling the tool, set loading=true during the call, then set success=true or error=message based on result.",
   component: DomainCreate,
   propsSchema: z.object({
     title: z.string().optional(),
     defaultName: z.string().optional(),
     defaultIpAddress: z.string().optional(),
-    onSuccess: z.function().optional().describe("Callback when domain is added. The AI will receive the creation details."),
   }),
 };

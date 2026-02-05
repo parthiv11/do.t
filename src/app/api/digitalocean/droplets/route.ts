@@ -57,6 +57,8 @@ export async function POST(req: Request) {
     const message = error instanceof Error ? error.message : "Unknown error";
     const status =
       error instanceof DigitalOceanApiError ? error.status : 500;
-    return NextResponse.json({ error: message }, { status });
+    // eslint-disable-next-line no-console
+    console.error("POST /api/digitalocean/droplets error:", error);
+    return NextResponse.json({ error: message, details: error instanceof DigitalOceanApiError ? error.body : undefined }, { status });
   }
 }

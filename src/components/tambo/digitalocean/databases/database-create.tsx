@@ -57,34 +57,39 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
   const [engine, setEngine] = useTamboComponentState("engine", defaultEngine, defaultEngine);
   const [region, setRegion] = useTamboComponentState("region", defaultRegion, defaultRegion);
   const [size, setSize] = useTamboComponentState("size", defaultSize, defaultSize);
+  const [submitRequested, setSubmitRequested] = useTamboComponentState("submitRequested", false, false);
   const [loading, setLoading] = useTamboComponentState("loading", false, false);
   const [error, setError] = useTamboComponentState<string | null>("error", null, null);
   const [success, setSuccess] = useTamboComponentState("success", false, false);
   const [expandedSection, setExpandedSection] = React.useState<string | null>("engine");
 
-  // Update state when default props change (handles streaming)
-  React.useEffect(() => {
-    if (defaultName) setName(defaultName);
-    if (defaultEngine) setEngine(defaultEngine);
-    if (defaultRegion) setRegion(defaultRegion);
-    if (defaultSize) setSize(defaultSize);
-  }, [defaultName, defaultEngine, defaultRegion, defaultSize, setName, setEngine, setRegion, setSize]);
-
-  const handleCreate = async () => {
+  // Handle user clicking Create - AI will see submitRequested and call MCP tool
+  const handleCreate = () => {
     if (!name?.trim()) {
       setError("Database name is required");
       return;
     }
-    setLoading(true);
     setError(null);
-    try {
-      await new Promise((r) => setTimeout(r, 1500));
-      setSuccess(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error creating database");
-    } finally {
-      setLoading(false);
-    }
+    setSubmitRequested(true);
+  };
+
+  // AI calls this via MCP to set loading state
+  const setSubmitting = (value: boolean) => {
+    setLoading(value);
+  };
+
+  // AI calls this via MCP after successful creation
+  const markSuccess = () => {
+    setSubmitRequested(false);
+    setLoading(false);
+    setSuccess(true);
+  };
+
+  // AI calls this via MCP on error
+  const markError = (message: string) => {
+    setSubmitRequested(false);
+    setLoading(false);
+    setError(message);
   };
 
   if (success) {
@@ -259,12 +264,12 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
           {SIZES.find((s) => s.value === size)?.price}
         </div>
         <button
-          onClick={() => void handleCreate()}
-          disabled={loading || !name?.trim()}
+          onClick={handleCreate}
+          disabled={loading || !name?.trim() || submitRequested}
           className="flex items-center gap-2 px-6 py-2.5 rounded-md bg-cyan-600 hover:bg-cyan-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          Create Database
+          {submitRequested ? "Waiting for AI..." : "Create Database"}
         </button>
       </div>
     </div>
@@ -274,7 +279,7 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
 export const databaseCreateComponent: TamboComponent = {
   name: "databaseCreate",
   description:
-    "Render a form to create a new managed database cluster. ALWAYS render this when user wants to create a database. Supports PostgreSQL, MySQL, Redis, MongoDB. The AI can see and update form state including name, engine, region, size, loading, error, and success status.",
+    "Render a form to create a new managed database cluster. ALWAYS render this when user wants to create a database. Supports PostgreSQL (pg), MySQL, Redis, MongoDB. The AI can see and update form state including name, engine, region, size. When submitRequested is true, the AI MUST call the createDatabase MCP tool with the form values (name, engine, region, size). After calling the tool, set loading=true during the call, then set success=true or error=message based on result.",
   component: DatabaseCreate,
   propsSchema: z.object({
     title: z.string().optional(),

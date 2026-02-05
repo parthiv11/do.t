@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
-import { useTamboThreadInput } from "@tambo-ai/react";
+import { useTamboComponentState } from "@tambo-ai/react";
 import { z } from "zod";
 import {
   Box,
@@ -19,7 +19,6 @@ type ClusterCreateProps = {
   defaultVersion?: string;
   defaultNodeCount?: number;
   defaultNodeSize?: string;
-  onSuccess?: (data: { name: string; region: string; version: string; nodeCount: number; nodeSize: string }) => void;
 };
 
 const REGIONS = [
@@ -53,51 +52,47 @@ const ClusterCreate: React.FC<ClusterCreateProps> = (props) => {
     defaultVersion = "1.29.1-do.0",
     defaultNodeCount = 3,
     defaultNodeSize = "s-2vcpu-4gb",
-    onSuccess,
   } = props || {};
 
-  const { setValue, submit } = useTamboThreadInput();
-
-  const [form, setForm] = React.useState({
-    name: defaultName,
-    region: defaultRegion,
-    version: defaultVersion,
-    nodeCount: defaultNodeCount,
-    nodeSize: defaultNodeSize,
-  });
-
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [success, setSuccess] = React.useState(false);
+  // Use useTamboComponentState so AI can see and update state
+  const [name, setName] = useTamboComponentState("name", defaultName, defaultName);
+  const [region, setRegion] = useTamboComponentState("region", defaultRegion, defaultRegion);
+  const [version, setVersion] = useTamboComponentState("version", defaultVersion, defaultVersion);
+  const [nodeCount, setNodeCount] = useTamboComponentState("nodeCount", defaultNodeCount, defaultNodeCount);
+  const [nodeSize, setNodeSize] = useTamboComponentState("nodeSize", defaultNodeSize, defaultNodeSize);
+  const [submitRequested, setSubmitRequested] = useTamboComponentState("submitRequested", false, false);
+  const [loading, setLoading] = useTamboComponentState("loading", false, false);
+  const [error, setError] = useTamboComponentState<string | null>("error", null, null);
+  const [success, setSuccess] = useTamboComponentState("success", false, false);
   const [expandedSection, setExpandedSection] = React.useState<string | null>("region");
 
-  // Update form when default props change (handles streaming)
-  React.useEffect(() => {
-    setForm((prev) => ({
-      name: defaultName || prev.name,
-      region: defaultRegion || prev.region,
-      version: defaultVersion || prev.version,
-      nodeCount: defaultNodeCount || prev.nodeCount,
-      nodeSize: defaultNodeSize || prev.nodeSize,
-    }));
-  }, [defaultName, defaultRegion, defaultVersion, defaultNodeCount, defaultNodeSize]);
-
-  const handleCreate = async () => {
-    if (!form.name.trim()) {
+  // Handle user clicking Create - AI will see submitRequested and call MCP tool
+  const handleCreate = () => {
+    if (!name?.trim()) {
       setError("Cluster name is required");
       return;
     }
-    setLoading(true);
     setError(null);
-    try {
-      // API call would go here
-      await new Promise((r) => setTimeout(r, 1500));
-      setSuccess(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error creating cluster");
-    } finally {
-      setLoading(false);
-    }
+    setSubmitRequested(true);
+  };
+
+  // AI calls this via MCP to set loading state
+  const setSubmitting = (value: boolean) => {
+    setLoading(value);
+  };
+
+  // AI calls this via MCP after successful creation
+  const markSuccess = () => {
+    setSubmitRequested(false);
+    setLoading(false);
+    setSuccess(true);
+  };
+
+  // AI calls this via MCP on error
+  const markError = (message: string) => {
+    setSubmitRequested(false);
+    setLoading(false);
+    setError(message);
   };
 
   if (success) {
@@ -109,20 +104,20 @@ const ClusterCreate: React.FC<ClusterCreateProps> = (props) => {
           </div>
           <h3 className="text-xl font-semibold mb-2">Cluster Created!</h3>
           <p className="text-gray-400 mb-4">
-            Your Kubernetes cluster <span className="text-white font-medium">{form.name}</span> is being provisioned.
+            Your Kubernetes cluster <span className="text-white font-medium">{name}</span> is being provisioned.
           </p>
           <div className="bg-[#161b22] rounded-lg p-4 text-left text-sm space-y-2">
             <div className="flex justify-between">
               <span className="text-gray-400">Region</span>
-              <span>{form.region}</span>
+              <span>{region}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Version</span>
-              <span>{form.version}</span>
+              <span>{version}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-400">Nodes</span>
-              <span>{form.nodeCount} × {form.nodeSize}</span>
+              <span>{nodeCount} × {nodeSize}</span>
             </div>
           </div>
         </div>
@@ -154,8 +149,8 @@ const ClusterCreate: React.FC<ClusterCreateProps> = (props) => {
         <div>
           <label className="block text-sm font-medium mb-2">Cluster Name</label>
           <input
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             placeholder="my-k8s-cluster"
             className="w-full px-4 py-3 rounded-md border border-gray-600 bg-[#161b22] text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"
           />
@@ -169,24 +164,24 @@ const ClusterCreate: React.FC<ClusterCreateProps> = (props) => {
           >
             <span>Region</span>
             <div className="flex items-center gap-2 text-gray-400">
-              <span>{REGIONS.find((r) => r.value === form.region)?.label || form.region}</span>
+              <span>{REGIONS.find((r) => r.value === region)?.label || region}</span>
               <ChevronDown className={`w-4 h-4 transition-transform ${expandedSection === "region" ? "rotate-180" : ""}`} />
             </div>
           </button>
           {expandedSection === "region" && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {REGIONS.map((region) => (
+              {REGIONS.map((r) => (
                 <button
-                  key={region.value}
-                  onClick={() => setForm((f) => ({ ...f, region: region.value }))}
+                  key={r.value}
+                  onClick={() => setRegion(r.value)}
                   className={`px-3 py-2 rounded-md border text-left text-sm transition-colors ${
-                    form.region === region.value
+                    region === r.value
                       ? "border-purple-500 bg-purple-500/10 text-white"
                       : "border-gray-600 bg-[#161b22] text-gray-300 hover:border-gray-500"
                   }`}
                 >
-                  <span className="mr-2">{region.flag}</span>
-                  {region.label}
+                  <span className="mr-2">{r.flag}</span>
+                  {r.label}
                 </button>
               ))}
             </div>
@@ -201,23 +196,23 @@ const ClusterCreate: React.FC<ClusterCreateProps> = (props) => {
           >
             <span>Kubernetes Version</span>
             <div className="flex items-center gap-2 text-gray-400">
-              <span>{VERSIONS.find((v) => v.value === form.version)?.label || form.version}</span>
+              <span>{VERSIONS.find((v) => v.value === version)?.label || version}</span>
               <ChevronDown className={`w-4 h-4 transition-transform ${expandedSection === "version" ? "rotate-180" : ""}`} />
             </div>
           </button>
           {expandedSection === "version" && (
             <div className="space-y-2">
-              {VERSIONS.map((version) => (
+              {VERSIONS.map((v) => (
                 <button
-                  key={version.value}
-                  onClick={() => setForm((f) => ({ ...f, version: version.value }))}
+                  key={v.value}
+                  onClick={() => setVersion(v.value)}
                   className={`w-full px-4 py-3 rounded-md border text-left transition-colors ${
-                    form.version === version.value
+                    version === v.value
                       ? "border-purple-500 bg-purple-500/10"
                       : "border-gray-600 bg-[#161b22] hover:border-gray-500"
                   }`}
                 >
-                  {version.label}
+                  {v.label}
                 </button>
               ))}
             </div>
@@ -234,30 +229,30 @@ const ClusterCreate: React.FC<ClusterCreateProps> = (props) => {
                 type="number"
                 min={1}
                 max={100}
-                value={form.nodeCount}
-                onChange={(e) => setForm((f) => ({ ...f, nodeCount: parseInt(e.target.value) || 1 }))}
+                value={nodeCount}
+                onChange={(e) => setNodeCount(parseInt(e.target.value) || 1)}
                 className="w-full px-4 py-2 rounded-md border border-gray-600 bg-[#161b22] text-white focus:border-purple-500 outline-none"
               />
             </div>
           </div>
           <div className="space-y-2">
-            {NODE_SIZES.map((size) => (
+            {NODE_SIZES.map((s) => (
               <button
-                key={size.value}
-                onClick={() => setForm((f) => ({ ...f, nodeSize: size.value }))}
+                key={s.value}
+                onClick={() => setNodeSize(s.value)}
                 className={`w-full px-4 py-3 rounded-md border text-left transition-colors ${
-                  form.nodeSize === size.value
+                  nodeSize === s.value
                     ? "border-purple-500 bg-purple-500/10"
                     : "border-gray-600 bg-[#161b22] hover:border-gray-500"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="font-medium">{size.cpu}</span>
+                    <span className="font-medium">{s.cpu}</span>
                     <span className="text-gray-400 mx-2">·</span>
-                    <span className="text-gray-300">{size.ram}</span>
+                    <span className="text-gray-300">{s.ram}</span>
                   </div>
-                  <span className="text-purple-400 font-medium">{size.price}/node</span>
+                  <span className="text-purple-400 font-medium">{s.price}/node</span>
                 </div>
               </button>
             ))}
@@ -268,15 +263,15 @@ const ClusterCreate: React.FC<ClusterCreateProps> = (props) => {
       {/* Footer */}
       <div className="px-6 py-4 border-t border-gray-700 flex items-center justify-between bg-[#161b22]">
         <div className="text-sm text-gray-400">
-          Est. ${(parseInt(NODE_SIZES.find((s) => s.value === form.nodeSize)?.price?.replace(/\D/g, "") || "24") * form.nodeCount)}/mo
+          Est. ${(parseInt(NODE_SIZES.find((s) => s.value === nodeSize)?.price?.replace(/\D/g, "") || "24") * (nodeCount || 3))}/mo
         </div>
         <button
-          onClick={() => void handleCreate()}
-          disabled={loading || !form.name.trim()}
+          onClick={handleCreate}
+          disabled={loading || !name?.trim() || submitRequested}
           className="flex items-center gap-2 px-6 py-2.5 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          Create Cluster
+          {submitRequested ? "Waiting for AI..." : "Create Cluster"}
         </button>
       </div>
     </div>
@@ -286,7 +281,7 @@ const ClusterCreate: React.FC<ClusterCreateProps> = (props) => {
 export const clusterCreateComponent: TamboComponent = {
   name: "kubernetesClusterCreate",
   description:
-    "Render a form to create a new Kubernetes cluster. ALWAYS render this when user wants to create a K8s/Kubernetes cluster. Pass user preferences as props.",
+    "Render a form to create a new Kubernetes cluster. ALWAYS render this when user wants to create a K8s/Kubernetes cluster. The AI can see and update form state including name, region, version, nodeCount, nodeSize. When submitRequested is true, the AI MUST call the createKubernetesCluster MCP tool with the form values (name, region, version, nodeCount, nodeSize). After calling the tool, set loading=true during the call, then set success=true or error=message based on result.",
   component: ClusterCreate,
   propsSchema: z.object({
     title: z.string().optional(),
@@ -295,6 +290,5 @@ export const clusterCreateComponent: TamboComponent = {
     defaultVersion: z.string().optional().describe("Pre-select K8s version"),
     defaultNodeCount: z.number().optional().describe("Pre-fill node count"),
     defaultNodeSize: z.string().optional().describe("Pre-select node size"),
-    onSuccess: z.function().optional().describe("Callback when cluster is created. The AI will receive the creation details."),
   }),
 };

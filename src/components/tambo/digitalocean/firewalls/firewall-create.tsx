@@ -2,13 +2,13 @@
 
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
+import { useTamboComponentState } from "@tambo-ai/react";
 import { z } from "zod";
 import { Shield, Loader2, CheckCircle2, AlertCircle, Plus, Trash2 } from "lucide-react";
 
 type FirewallCreateProps = {
   title?: string;
   defaultName?: string;
-  onSuccess?: (data: { name: string }) => void;
 };
 
 type Rule = {
@@ -19,24 +19,21 @@ type Rule = {
 };
 
 const FirewallCreate: React.FC<FirewallCreateProps> = (props) => {
-  const { title = "Create Firewall", defaultName = "", onSuccess } = props || {};
+  const { title = "Create Firewall", defaultName = "" } = props || {};
 
-  const [form, setForm] = React.useState({ name: defaultName });
+  // Use useTamboComponentState so AI can see and update state
+  const [name, setName] = useTamboComponentState("name", defaultName, defaultName);
+  const [submitRequested, setSubmitRequested] = useTamboComponentState("submitRequested", false, false);
+  const [loading, setLoading] = useTamboComponentState("loading", false, false);
+  const [error, setError] = useTamboComponentState<string | null>("error", null, null);
+  const [success, setSuccess] = useTamboComponentState("success", false, false);
   const [inboundRules, setInboundRules] = React.useState<Rule[]>([
     { id: "1", protocol: "tcp", ports: "22", sources: "0.0.0.0/0" },
     { id: "2", protocol: "tcp", ports: "80", sources: "0.0.0.0/0" },
     { id: "3", protocol: "tcp", ports: "443", sources: "0.0.0.0/0" },
   ]);
 
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [success, setSuccess] = React.useState(false);
-
-  // Update form when default props change (handles streaming)
-  React.useEffect(() => {
-    setForm((prev) => ({ name: defaultName || prev.name }));
-  }, [defaultName]);
-
+  // Update inboundRules in component state only (not exposed to AI)
   const addRule = () => {
     setInboundRules((prev) => [...prev, { id: Date.now().toString(), protocol: "tcp", ports: "", sources: "0.0.0.0/0" }]);
   };
@@ -49,21 +46,33 @@ const FirewallCreate: React.FC<FirewallCreateProps> = (props) => {
     setInboundRules((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
   };
 
-  const handleCreate = async () => {
-    if (!form.name.trim()) {
+  // Handle user clicking Create - AI will see submitRequested and call MCP tool
+  const handleCreate = () => {
+    if (!name?.trim()) {
       setError("Firewall name is required");
       return;
     }
-    setLoading(true);
     setError(null);
-    try {
-      await new Promise((r) => setTimeout(r, 1500));
-      setSuccess(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error creating firewall");
-    } finally {
-      setLoading(false);
-    }
+    setSubmitRequested(true);
+  };
+
+  // AI calls this via MCP to set loading state
+  const setSubmitting = (value: boolean) => {
+    setLoading(value);
+  };
+
+  // AI calls this via MCP after successful creation
+  const markSuccess = () => {
+    setSubmitRequested(false);
+    setLoading(false);
+    setSuccess(true);
+  };
+
+  // AI calls this via MCP on error
+  const markError = (message: string) => {
+    setSubmitRequested(false);
+    setLoading(false);
+    setError(message);
   };
 
   if (success) {
@@ -75,7 +84,7 @@ const FirewallCreate: React.FC<FirewallCreateProps> = (props) => {
           </div>
           <h3 className="text-xl font-semibold mb-2">Firewall Created!</h3>
           <p className="text-gray-400">
-            <span className="text-white font-medium">{form.name}</span> with {inboundRules.length} inbound rules.
+            <span className="text-white font-medium">{name}</span> with {inboundRules.length} inbound rules.
           </p>
         </div>
       </div>
@@ -105,8 +114,8 @@ const FirewallCreate: React.FC<FirewallCreateProps> = (props) => {
         <div>
           <label className="block text-sm font-medium mb-2">Firewall Name</label>
           <input
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
             placeholder="my-firewall"
             className="w-full px-4 py-3 rounded-md border border-gray-600 bg-[#161b22] text-white placeholder-gray-500 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
           />
@@ -161,12 +170,12 @@ const FirewallCreate: React.FC<FirewallCreateProps> = (props) => {
 
       <div className="px-6 py-4 border-t border-gray-700 flex justify-end bg-[#161b22]">
         <button
-          onClick={() => void handleCreate()}
-          disabled={loading || !form.name.trim()}
+          onClick={handleCreate}
+          disabled={loading || !name?.trim() || submitRequested}
           className="flex items-center gap-2 px-6 py-2.5 rounded-md bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          Create Firewall
+          {submitRequested ? "Waiting for AI..." : "Create Firewall"}
         </button>
       </div>
     </div>
@@ -175,11 +184,10 @@ const FirewallCreate: React.FC<FirewallCreateProps> = (props) => {
 
 export const firewallCreateComponent: TamboComponent = {
   name: "firewallCreate",
-  description: "Render a form to create a new firewall with inbound rules. ALWAYS render this when user wants to create a firewall.",
+  description: "Render a form to create a new firewall with inbound rules. ALWAYS render this when user wants to create a firewall. The AI can see and update form state including name. When submitRequested is true, the AI MUST call the createFirewall MCP tool with the form values (name, inboundRules as array of {protocol, ports, sources}). After calling the tool, set loading=true during the call, then set success=true or error=message based on result.",
   component: FirewallCreate,
   propsSchema: z.object({
     title: z.string().optional(),
     defaultName: z.string().optional(),
-    onSuccess: z.function().optional().describe("Callback when firewall is created. The AI will receive the creation details."),
   }),
 };
