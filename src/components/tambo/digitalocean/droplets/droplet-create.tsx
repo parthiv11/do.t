@@ -107,6 +107,17 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
   const [success, setSuccess] = React.useState<DropletSummary | null>(null);
   const [expandedSection, setExpandedSection] = React.useState<string | null>("region");
 
+  // Update form when default props change (handles streaming)
+  React.useEffect(() => {
+    setForm((prev) => ({
+      name: defaultName || prev.name,
+      region: defaultRegion || prev.region,
+      size: defaultSize || prev.size,
+      image: defaultImage || prev.image,
+      tags: defaultTags?.join(", ") || prev.tags,
+    }));
+  }, [defaultName, defaultRegion, defaultSize, defaultImage, defaultTags]);
+
   const handleCreate = async () => {
     if (!form.name.trim()) {
       setError("Name is required");

@@ -19,6 +19,14 @@ const DomainCreate: React.FC<DomainCreateProps> = (props) => {
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState(false);
 
+  // Update form when default props change (handles streaming)
+  React.useEffect(() => {
+    setForm((prev) => ({
+      name: defaultName || prev.name,
+      ipAddress: defaultIpAddress || prev.ipAddress,
+    }));
+  }, [defaultName, defaultIpAddress]);
+
   const handleCreate = async () => {
     if (!form.name.trim()) {
       setError("Domain name is required");

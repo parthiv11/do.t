@@ -66,6 +66,17 @@ const ClusterCreate: React.FC<ClusterCreateProps> = (props) => {
   const [success, setSuccess] = React.useState(false);
   const [expandedSection, setExpandedSection] = React.useState<string | null>("region");
 
+  // Update form when default props change (handles streaming)
+  React.useEffect(() => {
+    setForm((prev) => ({
+      name: defaultName || prev.name,
+      region: defaultRegion || prev.region,
+      version: defaultVersion || prev.version,
+      nodeCount: defaultNodeCount || prev.nodeCount,
+      nodeSize: defaultNodeSize || prev.nodeSize,
+    }));
+  }, [defaultName, defaultRegion, defaultVersion, defaultNodeCount, defaultNodeSize]);
+
   const handleCreate = async () => {
     if (!form.name.trim()) {
       setError("Cluster name is required");

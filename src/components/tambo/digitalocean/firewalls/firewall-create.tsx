@@ -31,6 +31,11 @@ const FirewallCreate: React.FC<FirewallCreateProps> = (props) => {
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState(false);
 
+  // Update form when default props change (handles streaming)
+  React.useEffect(() => {
+    setForm((prev) => ({ name: defaultName || prev.name }));
+  }, [defaultName]);
+
   const addRule = () => {
     setInboundRules((prev) => [...prev, { id: Date.now().toString(), protocol: "tcp", ports: "", sources: "0.0.0.0/0" }]);
   };

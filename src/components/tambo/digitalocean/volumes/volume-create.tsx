@@ -49,6 +49,16 @@ const VolumeCreate: React.FC<VolumeCreateProps> = (props) => {
   const [success, setSuccess] = React.useState(false);
   const [expandedSection, setExpandedSection] = React.useState<string | null>("region");
 
+  // Update form when default props change (handles streaming)
+  React.useEffect(() => {
+    setForm((prev) => ({
+      name: defaultName || prev.name,
+      size: defaultSize || prev.size,
+      region: defaultRegion || prev.region,
+      filesystem: defaultFilesystem || prev.filesystem,
+    }));
+  }, [defaultName, defaultSize, defaultRegion, defaultFilesystem]);
+
   const pricePerMonth = (form.size * 0.10).toFixed(2);
 
   const handleCreate = async () => {

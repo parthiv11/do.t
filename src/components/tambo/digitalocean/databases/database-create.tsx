@@ -63,6 +63,16 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
   const [success, setSuccess] = React.useState(false);
   const [expandedSection, setExpandedSection] = React.useState<string | null>("engine");
 
+  // Update form when default props change (handles streaming)
+  React.useEffect(() => {
+    setForm((prev) => ({
+      name: defaultName || prev.name,
+      engine: defaultEngine || prev.engine,
+      region: defaultRegion || prev.region,
+      size: defaultSize || prev.size,
+    }));
+  }, [defaultName, defaultEngine, defaultRegion, defaultSize]);
+
   const handleCreate = async () => {
     if (!form.name.trim()) {
       setError("Database name is required");
