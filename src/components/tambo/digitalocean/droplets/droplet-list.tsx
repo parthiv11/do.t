@@ -105,10 +105,10 @@ const DropletList: React.FC<DropletListProps> = (props) => {
   }, [setDroplets]);
 
   React.useEffect(() => {
-    if (droplets.length === 0 && !loading) {
+    if (droplets.length === 0 && !loading && !error) {
       void refresh();
     }
-  }, [droplets.length, loading, refresh]);
+  }, [droplets.length, loading, error, refresh]);
 
   return (
     <div className="w-full max-w-2xl bg-[#0d1117] border border-gray-700 rounded-lg overflow-hidden text-gray-100">

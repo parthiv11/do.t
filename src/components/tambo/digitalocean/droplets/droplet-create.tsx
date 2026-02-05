@@ -69,39 +69,49 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
   const [size, setSize] = useTamboComponentState("size", defaultSize, defaultSize);
   const [image, setImage] = useTamboComponentState("image", defaultImage, defaultImage);
   const [tags, setTags] = useTamboComponentState("tags", defaultTags.join(", "), defaultTags.join(", "));
-  const [submitRequested, setSubmitRequested] = useTamboComponentState("submitRequested", false, false);
+  const [submitRequested, _setSubmitRequested] = useTamboComponentState("submitRequested", false, false);
   const [loading, setLoading] = useTamboComponentState("loading", false, false);
   const [error, setError] = useTamboComponentState<string | null>("error", null, null);
   const [success, setSuccess] = useTamboComponentState("success", false, false);
   const [expandedSection, setExpandedSection] = React.useState<string | null>("region");
 
-  // Handle user clicking Create - AI will see submitRequested and call MCP tool
-  const handleCreate = () => {
+  // Handle user clicking Create - calls API directly for dashboard functionality
+  const handleCreate = async () => {
     if (!name?.trim()) {
       setError("Name is required");
       return;
     }
     setError(null);
-    setSubmitRequested(true);
-  };
-
-  // AI calls this via MCP to set loading state
-  const setSubmitting = (value: boolean) => {
-    setLoading(value);
-  };
-
-  // AI calls this via MCP after successful creation
-  const markSuccess = () => {
-    setSubmitRequested(false);
-    setLoading(false);
-    setSuccess(true);
-  };
-
-  // AI calls this via MCP on error
-  const markError = (message: string) => {
-    setSubmitRequested(false);
-    setLoading(false);
-    setError(message);
+    setLoading(true);
+    
+    try {
+      const res = await fetch("/api/digitalocean/droplets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          region,
+          size,
+          image,
+          tags: tags ? tags.split(",").map(t => t.trim()).filter(Boolean) : [],
+        }),
+      });
+      
+      const text = await res.text();
+      const body = text ? JSON.parse(text) : null;
+      
+      if (!res.ok) {
+        const errorMsg = body?.error || `Failed (${res.status})`;
+        const details = body?.details ? JSON.stringify(body.details) : "";
+        throw new Error(details ? `${errorMsg}: ${details}` : errorMsg);
+      }
+      
+      setSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error creating droplet");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (success) {
@@ -284,12 +294,12 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
           {SIZES.find((s) => s.value === size)?.price || ""}
         </div>
         <button
-          onClick={handleCreate}
-          disabled={loading || !name?.trim() || submitRequested}
+          onClick={() => void handleCreate()}
+          disabled={loading || !name?.trim()}
           className="flex items-center gap-2 px-6 py-2.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          {submitRequested ? "Waiting for AI..." : "Create Droplet"}
+          Create Droplet
         </button>
       </div>
     </div>
@@ -299,7 +309,7 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
 export const dropletCreateComponent: TamboComponent = {
   name: "dropletCreate",
   description:
-    "Render a DigitalOcean-style form to create a new droplet. ALWAYS render this immediately when user wants to create a droplet. Pass user preferences as props. Sizes: s-1vcpu-512mb-10gb (smallest), s-1vcpu-1gb, s-2vcpu-4gb. Regions: nyc1, sfo3, lon1, fra1, sgp1. The AI can see and update form state including name, region, size, image, tags. When submitRequested is true, the AI MUST call the createDroplet MCP tool with the form values (name, region, size, image, tags as array). After calling the tool, set loading=true during the call, then set success=true or error=message based on result.",
+    "Render a DigitalOcean-style form to create a new droplet. ALWAYS render this immediately when user wants to create a droplet. Pass user preferences as props. Sizes: s-1vcpu-512mb-10gb (smallest), s-1vcpu-1gb, s-2vcpu-4gb. Regions: nyc1, sfo3, lon1, fra1, sgp1. The AI can see and update form state including name, region, size, image, tags. The form calls the API directly when user clicks Create.",
   component: DropletCreate,
   propsSchema: z.object({
     title: z.string().optional(),

@@ -18,38 +18,45 @@ const DomainCreate: React.FC<DomainCreateProps> = (props) => {
   // Use useTamboComponentState so AI can see and update state
   const [name, setName] = useTamboComponentState("name", defaultName, defaultName);
   const [ipAddress, setIpAddress] = useTamboComponentState("ipAddress", defaultIpAddress, defaultIpAddress);
-  const [submitRequested, setSubmitRequested] = useTamboComponentState("submitRequested", false, false);
+  const [submitRequested, _setSubmitRequested] = useTamboComponentState("submitRequested", false, false);
   const [loading, setLoading] = useTamboComponentState("loading", false, false);
   const [error, setError] = useTamboComponentState<string | null>("error", null, null);
   const [success, setSuccess] = useTamboComponentState("success", false, false);
 
-  // Handle user clicking Create - AI will see submitRequested and call MCP tool
-  const handleCreate = () => {
+  // Handle user clicking Create - calls API directly for dashboard functionality
+  const handleCreate = async () => {
     if (!name?.trim()) {
       setError("Domain name is required");
       return;
     }
     setError(null);
-    setSubmitRequested(true);
-  };
-
-  // AI calls this via MCP to set loading state
-  const setSubmitting = (value: boolean) => {
-    setLoading(value);
-  };
-
-  // AI calls this via MCP after successful creation
-  const markSuccess = () => {
-    setSubmitRequested(false);
-    setLoading(false);
-    setSuccess(true);
-  };
-
-  // AI calls this via MCP on error
-  const markError = (message: string) => {
-    setSubmitRequested(false);
-    setLoading(false);
-    setError(message);
+    setLoading(true);
+    
+    try {
+      const res = await fetch("/api/digitalocean/domains", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          ipAddress,
+        }),
+      });
+      
+      const text = await res.text();
+      const body = text ? JSON.parse(text) : null;
+      
+      if (!res.ok) {
+        const errorMsg = body?.error || `Failed (${res.status})`;
+        const details = body?.details ? JSON.stringify(body.details) : "";
+        throw new Error(details ? `${errorMsg}: ${details}` : errorMsg);
+      }
+      
+      setSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error adding domain");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (success) {
@@ -111,12 +118,12 @@ const DomainCreate: React.FC<DomainCreateProps> = (props) => {
 
       <div className="px-6 py-4 border-t border-gray-700 flex justify-end bg-[#161b22]">
         <button
-          onClick={handleCreate}
-          disabled={loading || !name?.trim() || submitRequested}
+          onClick={() => void handleCreate()}
+          disabled={loading || !name?.trim()}
           className="flex items-center gap-2 px-6 py-2.5 rounded-md bg-green-600 hover:bg-green-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          {submitRequested ? "Waiting for AI..." : "Add Domain"}
+          Add Domain
         </button>
       </div>
     </div>
@@ -125,7 +132,7 @@ const DomainCreate: React.FC<DomainCreateProps> = (props) => {
 
 export const domainCreateComponent: TamboComponent = {
   name: "domainCreate",
-  description: "Render a form to add a new domain for DNS management. ALWAYS render this when user wants to add a domain. The AI can see and update form state including name, ipAddress. When submitRequested is true, the AI MUST call the createDomain MCP tool with the form values (name, ipAddress). After calling the tool, set loading=true during the call, then set success=true or error=message based on result.",
+  description: "Render a form to add a new domain for DNS management. ALWAYS render this when user wants to add a domain. The AI can see and update form state including name, ipAddress. The form calls the API directly when user clicks Create.",
   component: DomainCreate,
   propsSchema: z.object({
     title: z.string().optional(),

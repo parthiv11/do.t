@@ -57,39 +57,48 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
   const [engine, setEngine] = useTamboComponentState("engine", defaultEngine, defaultEngine);
   const [region, setRegion] = useTamboComponentState("region", defaultRegion, defaultRegion);
   const [size, setSize] = useTamboComponentState("size", defaultSize, defaultSize);
-  const [submitRequested, setSubmitRequested] = useTamboComponentState("submitRequested", false, false);
+  const [submitRequested, _setSubmitRequested] = useTamboComponentState("submitRequested", false, false);
   const [loading, setLoading] = useTamboComponentState("loading", false, false);
   const [error, setError] = useTamboComponentState<string | null>("error", null, null);
   const [success, setSuccess] = useTamboComponentState("success", false, false);
   const [expandedSection, setExpandedSection] = React.useState<string | null>("engine");
 
-  // Handle user clicking Create - AI will see submitRequested and call MCP tool
-  const handleCreate = () => {
+  // Handle user clicking Create - calls API directly for dashboard functionality
+  const handleCreate = async () => {
     if (!name?.trim()) {
       setError("Database name is required");
       return;
     }
     setError(null);
-    setSubmitRequested(true);
-  };
-
-  // AI calls this via MCP to set loading state
-  const setSubmitting = (value: boolean) => {
-    setLoading(value);
-  };
-
-  // AI calls this via MCP after successful creation
-  const markSuccess = () => {
-    setSubmitRequested(false);
-    setLoading(false);
-    setSuccess(true);
-  };
-
-  // AI calls this via MCP on error
-  const markError = (message: string) => {
-    setSubmitRequested(false);
-    setLoading(false);
-    setError(message);
+    setLoading(true);
+    
+    try {
+      const res = await fetch("/api/digitalocean/databases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          engine,
+          region,
+          size,
+        }),
+      });
+      
+      const text = await res.text();
+      const body = text ? JSON.parse(text) : null;
+      
+      if (!res.ok) {
+        const errorMsg = body?.error || `Failed (${res.status})`;
+        const details = body?.details ? JSON.stringify(body.details) : "";
+        throw new Error(details ? `${errorMsg}: ${details}` : errorMsg);
+      }
+      
+      setSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error creating database");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (success) {
@@ -264,12 +273,12 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
           {SIZES.find((s) => s.value === size)?.price}
         </div>
         <button
-          onClick={handleCreate}
-          disabled={loading || !name?.trim() || submitRequested}
+          onClick={() => void handleCreate()}
+          disabled={loading || !name?.trim()}
           className="flex items-center gap-2 px-6 py-2.5 rounded-md bg-cyan-600 hover:bg-cyan-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          {submitRequested ? "Waiting for AI..." : "Create Database"}
+          Create Database
         </button>
       </div>
     </div>
@@ -279,7 +288,7 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
 export const databaseCreateComponent: TamboComponent = {
   name: "databaseCreate",
   description:
-    "Render a form to create a new managed database cluster. ALWAYS render this when user wants to create a database. Supports PostgreSQL (pg), MySQL, Redis, MongoDB. The AI can see and update form state including name, engine, region, size. When submitRequested is true, the AI MUST call the createDatabase MCP tool with the form values (name, engine, region, size). After calling the tool, set loading=true during the call, then set success=true or error=message based on result.",
+    "Render a form to create a new managed database cluster. ALWAYS render this when user wants to create a database. Supports PostgreSQL (pg), MySQL, Redis, MongoDB. The AI can see and update form state including name, engine, region, size. The form calls the API directly when user clicks Create.",
   component: DatabaseCreate,
   propsSchema: z.object({
     title: z.string().optional(),
