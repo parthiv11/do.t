@@ -74,9 +74,9 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
     setLoading(true);
     
     try {
-      // Send message to AI/MCP to create the database
+      // Send message to AI/MCP to create the database - indicate form already submitted
       const engineLabel = ENGINES.find(e => e.value === engine)?.label || engine;
-      setValue(`Create a ${engineLabel} database cluster named "${name.trim()}" in ${region} with size ${size}`);
+      setValue(`[FORM_SUBMITTED] Database creation form completed. Details: name="${name.trim()}", engine=${engineLabel}, region=${region}, size=${size}. Please create the database via MCP and confirm.`);
       await submitMessage({ streamResponse: true });
       setSuccess(true);
     } catch (e) {
@@ -273,7 +273,7 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
 export const databaseCreateComponent: TamboComponent = {
   name: "databaseCreate",
   description:
-    "Render a form to create a new managed database cluster. ALWAYS render this when user wants to create a database. Supports PostgreSQL (pg), MySQL, Redis, MongoDB. The AI can see and update form state including name, engine, region, size. The form calls the API directly when user clicks Create.",
+    "Render a form to create a new managed database cluster. ONLY render this when the user initially asks to create a database AND the form hasn't been shown yet. Supports PostgreSQL (pg), MySQL, Redis, MongoDB. Once user clicks Create, the component will handle submission to MCP - do NOT re-render this component for the same creation request.",
   component: DatabaseCreate,
   propsSchema: z.object({
     title: z.string().optional(),

@@ -78,7 +78,7 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
   const isStreaming = streamStatus?.isStreaming ?? false;
   const { setValue, submit: submitMessage } = useTamboThreadInput();
 
-  // Handle user clicking Create - calls API directly for dashboard functionality
+  // Handle user clicking Create - sends message to AI/MCP to create droplet
   const handleCreate = async () => {
     if (!name?.trim()) {
       setError("Name is required");
@@ -88,35 +88,13 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
     setLoading(true);
     
     try {
-      const res = await fetch("/api/digitalocean/droplets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          region,
-          size,
-          image,
-          tags: tags ? tags.split(",").map(t => t.trim()).filter(Boolean) : [],
-        }),
-      });
-      
-      const text = await res.text();
-      const body = text ? JSON.parse(text) : null;
-      
-      if (!res.ok) {
-        const errorMsg = body?.error || `Failed (${res.status})`;
-        const details = body?.details ? JSON.stringify(body.details) : "";
-        throw new Error(details ? `${errorMsg}: ${details}` : errorMsg);
-      }
-      
+      // Send message to AI/MCP to create the droplet
+      const imageLabel = IMAGES.find(i => i.value === image)?.label || image;
+      const regionLabel = REGIONS.find(r => r.value === region)?.label || region;
+      const sizeLabel = SIZES.find(s => s.value === size)?.label || size;
+      setValue(`[FORM_SUBMITTED] Droplet creation form completed. Details: name="${name.trim()}", image=${imageLabel}, region=${regionLabel} (${region}), size=${sizeLabel} (${size}). Please create the droplet via MCP and confirm.`);
+      await submitMessage({ streamResponse: true });
       setSuccess(true);
-      // Notify the chat so the AI continues the conversation
-      try {
-        setValue(`Droplet "${name.trim()}" was just created in ${region} (${size}, ${image}). Show me its status.`);
-        await submitMessage({ streamResponse: true });
-      } catch {
-        // Chat notification is best-effort
-      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error creating droplet");
     } finally {
@@ -319,7 +297,7 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
 export const dropletCreateComponent: TamboComponent = {
   name: "dropletCreate",
   description:
-    "Render a DigitalOcean-style form to create a new droplet. ALWAYS render this immediately when user wants to create a droplet. Pass user preferences as props. Sizes: s-1vcpu-512mb-10gb (smallest), s-1vcpu-1gb, s-2vcpu-4gb. Regions: nyc1, sfo3, lon1, fra1, sgp1. The AI can see and update form state including name, region, size, image, tags. The form calls the API directly when user clicks Create.",
+    "Render a DigitalOcean-style form to create a new droplet. ONLY render this when the user initially asks to create a droplet AND the form hasn't been shown yet. Sizes: s-1vcpu-512mb-10gb (smallest), s-1vcpu-1gb, s-2vcpu-4gb. Regions: nyc1, sfo3, lon1, fra1, sgp1. The AI can see and update form state. Once user clicks Create, the component handles submission to MCP - do NOT re-render this component for the same creation request.",
   component: DropletCreate,
   propsSchema: z.object({
     title: z.string().optional(),
