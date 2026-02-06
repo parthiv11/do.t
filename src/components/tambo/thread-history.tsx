@@ -161,6 +161,7 @@ const ThreadHistory = React.forwardRef<HTMLDivElement, ThreadHistoryProps>(
             isCollapsed ? "w-12" : "w-64",
             className,
           )}
+          suppressHydrationWarning
           {...props}
         >
           <div

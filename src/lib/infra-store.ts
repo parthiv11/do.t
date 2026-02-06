@@ -11,6 +11,7 @@ export type DropletSummary = {
   ipv4?: string;
   tags: string[];
   createdAt?: string;
+  price?: number;
 };
 
 export type KubernetesClusterSummary = {
@@ -61,6 +62,23 @@ export type FirewallSummary = {
   createdAt?: string;
 };
 
+export type SnapshotSummary = {
+  id: string;
+  name: string;
+  createdAt: string;
+  size?: number;
+  regions?: string[];
+  minDiskSize?: number;
+};
+
+export type BackupSummary = {
+  id: string;
+  name?: string;
+  createdAt?: string;
+  size?: number;
+  dropletId?: number;
+};
+
 type InfraState = {
   droplets: DropletSummary[];
   selectedDropletIds: number[];
@@ -69,6 +87,8 @@ type InfraState = {
   domains: DomainSummary[];
   volumes: VolumeSummary[];
   firewalls: FirewallSummary[];
+  snapshots: SnapshotSummary[];
+  backups: BackupSummary[];
   lastRefreshedAt: string | null;
   setDroplets: (droplets: DropletSummary[]) => void;
   setSelectedDropletIds: (ids: number[]) => void;
@@ -77,6 +97,8 @@ type InfraState = {
   setDomains: (domains: DomainSummary[]) => void;
   setVolumes: (volumes: VolumeSummary[]) => void;
   setFirewalls: (firewalls: FirewallSummary[]) => void;
+  setSnapshots: (snapshots: SnapshotSummary[]) => void;
+  setBackups: (backups: BackupSummary[]) => void;
   clear: () => void;
 };
 
@@ -88,6 +110,8 @@ export const useInfraStore = create<InfraState>((set) => ({
   domains: [],
   volumes: [],
   firewalls: [],
+  snapshots: [],
+  backups: [],
   lastRefreshedAt: null,
   setDroplets: (droplets) =>
     set({
@@ -105,6 +129,10 @@ export const useInfraStore = create<InfraState>((set) => ({
     set({ volumes, lastRefreshedAt: new Date().toISOString() }),
   setFirewalls: (firewalls) =>
     set({ firewalls, lastRefreshedAt: new Date().toISOString() }),
+  setSnapshots: (snapshots) =>
+    set({ snapshots, lastRefreshedAt: new Date().toISOString() }),
+  setBackups: (backups) =>
+    set({ backups, lastRefreshedAt: new Date().toISOString() }),
   clear: () =>
     set({
       droplets: [],
@@ -114,6 +142,8 @@ export const useInfraStore = create<InfraState>((set) => ({
       domains: [],
       volumes: [],
       firewalls: [],
+      snapshots: [],
+      backups: [],
       lastRefreshedAt: null,
     }),
 }));

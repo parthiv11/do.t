@@ -12,6 +12,7 @@ import {
   type FirewallSummary,
 } from "@/lib/infra-store";
 import { useTheme } from "@/components/theme-provider";
+import { useTamboThreadInput } from "@tambo-ai/react";
 import {
   Server,
   RefreshCw,
@@ -31,6 +32,7 @@ import {
   Moon,
   Sun,
   Monitor,
+  Bot,
 } from "lucide-react";
 
 type DODashboardProps = React.HTMLAttributes<HTMLDivElement>;
@@ -518,6 +520,103 @@ function CreateDropletModal({
   );
 }
 
+function AIActionModal({
+  open,
+  onClose,
+  type,
+  data,
+}: {
+  open: boolean;
+  onClose: () => void;
+  type: "create" | "reboot" | "delete" | "bulk-delete" | null;
+  data: unknown;
+}) {
+  if (!open || !type) return null;
+
+  const getTitle = () => {
+    switch (type) {
+      case "create":
+        return "Creating Droplet via AI";
+      case "reboot":
+        return "Rebooting Droplet via AI";
+      case "delete":
+        return "Destroying Droplet via AI";
+      case "bulk-delete":
+        return "Bulk Destroy via AI";
+      default:
+        return "AI Action";
+    }
+  };
+
+  const getDescription = () => {
+    switch (type) {
+      case "create": {
+        const d = data as { name: string; region: string; size: string; image: string };
+        return `Requesting AI to create droplet "${d?.name}" in ${d?.region}...`;
+      }
+      case "reboot": {
+        const d = data as { name: string; id: number };
+        return `Requesting AI to reboot "${d?.name}" (ID: ${d?.id})...`;
+      }
+      case "delete": {
+        const d = data as { name: string; id: number };
+        return `Requesting AI to destroy "${d?.name}" (ID: ${d?.id})...`;
+      }
+      case "bulk-delete": {
+        const d = data as { names: string; ids: number[] };
+        return `Requesting AI to destroy ${d?.ids?.length} droplet(s)...`;
+      }
+      default:
+        return "Processing AI request...";
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="bg-[#0d1117] border border-[#30363d] rounded-xl shadow-2xl w-full max-w-md mx-4">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#30363d]">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+              <Bot className="w-4 h-4 text-blue-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-[#e6edf3]">{getTitle()}</h3>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-[#30363d] rounded-lg text-[#7d8590]">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center animate-pulse">
+              <RefreshCw className="w-6 h-6 text-blue-400 animate-spin" />
+            </div>
+            <div>
+              <p className="text-[#e6edf3] font-medium">{getDescription()}</p>
+              <p className="text-sm text-[#7d8590] mt-1">
+                The AI is handling this action via MCP. Check the chat for updates.
+              </p>
+            </div>
+          </div>
+          <div className="bg-[#161b22] rounded-lg p-4 border border-[#30363d]">
+            <p className="text-xs text-[#7d8590] uppercase tracking-wide mb-2">Action Details</p>
+            <pre className="text-xs text-[#e6edf3] overflow-auto max-h-32 whitespace-pre-wrap">
+              {JSON.stringify(data, null, 2)}
+            </pre>
+          </div>
+        </div>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#30363d] bg-[#161b22] rounded-b-xl">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
   const droplets = useInfraStore((s) => s.droplets);
   const setDroplets = useInfraStore((s) => s.setDroplets);
@@ -530,6 +629,11 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
   const [error, setError] = React.useState<string | null>(null);
   const [showCreate, setShowCreate] = React.useState(false);
   const [actionFeedback, setActionFeedback] = React.useState<string | null>(null);
+  const [aiModalOpen, setAiModalOpen] = React.useState(false);
+  const [aiModalType, setAiModalType] = React.useState<"create" | "reboot" | "delete" | "bulk-delete" | null>(null);
+  const [aiModalData, setAiModalData] = React.useState<unknown>(null);
+
+  const { setValue, submit: submitMessage } = useTamboThreadInput();
 
   const selectedSet = React.useMemo(() => new Set(selectedDropletIds), [selectedDropletIds]);
 
@@ -593,63 +697,62 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
   };
 
   const handleCreate = async (params: { name: string; region: string; size: string; image: string; tags: string[] }) => {
-    setLoading(true);
-    try {
-      const created = await createDropletApi(params);
-      setDroplets([created, ...droplets]);
-      setShowCreate(false);
-      setActionFeedback(`Created "${created.name}"`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
-    } finally {
-      setLoading(false);
-    }
+    setAiModalType("create");
+    setAiModalData(params);
+    setAiModalOpen(true);
+    setShowCreate(false);
+    // Send message to AI to create droplet via MCP
+    const message = `[FORM_SUBMITTED] Please create a new droplet with the following specifications:
+- Name: "${params.name}"
+- Region: ${params.region}
+- Size: ${params.size}
+- Image: ${params.image}
+- Tags: ${params.tags.join(", ") || "none"}
+
+Please handle the droplet creation via MCP and confirm when complete.`;
+    setValue(message);
+    await submitMessage({ streamResponse: true });
+    setActionFeedback(`Requested AI to create "${params.name}"`);
   };
 
   const handleReboot = async (id: number) => {
     const droplet = droplets.find((d) => d.id === id);
-    if (!confirm(`Reboot "${droplet?.name}"?`)) return;
-    setLoading(true);
-    try {
-      await rebootDropletApi(id);
-      setActionFeedback(`Rebooting "${droplet?.name}"...`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
-    } finally {
-      setLoading(false);
-    }
+    if (!droplet) return;
+    setAiModalType("reboot");
+    setAiModalData({ id, name: droplet.name });
+    setAiModalOpen(true);
+    // Send message to AI to reboot droplet via MCP
+    const message = `[DROPLET_ACTION] Please reboot droplet "${droplet.name}" (ID: ${id}). Confirm the reboot action via MCP.`;
+    setValue(message);
+    await submitMessage({ streamResponse: true });
+    setActionFeedback(`Requested AI to reboot "${droplet?.name}"`);
   };
 
   const handleDelete = async (id: number) => {
     const droplet = droplets.find((d) => d.id === id);
-    if (!confirm(`Destroy "${droplet?.name}"? This cannot be undone.`)) return;
-    setLoading(true);
-    try {
-      await deleteDropletApi(id);
-      setDroplets(droplets.filter((d) => d.id !== id));
-      setSelectedDropletIds(selectedDropletIds.filter((sid) => sid !== id));
-      setActionFeedback(`Destroyed "${droplet?.name}"`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
-    } finally {
-      setLoading(false);
-    }
+    if (!droplet) return;
+    setAiModalType("delete");
+    setAiModalData({ id, name: droplet.name });
+    setAiModalOpen(true);
+    // Send message to AI to delete droplet via MCP
+    const message = `[DROPLET_ACTION] Please destroy droplet "${droplet.name}" (ID: ${id}). This action cannot be undone. Confirm the deletion via MCP.`;
+    setValue(message);
+    await submitMessage({ streamResponse: true });
+    setActionFeedback(`Requested AI to destroy "${droplet?.name}"`);
   };
 
   const handleBulkDelete = async () => {
     if (selectedSet.size === 0) return;
-    if (!confirm(`Destroy ${selectedSet.size} droplet(s)? This cannot be undone.`)) return;
-    setLoading(true);
-    try {
-      await Promise.all(Array.from(selectedSet).map((id) => deleteDropletApi(id)));
-      setDroplets(droplets.filter((d) => !selectedSet.has(d.id)));
-      setSelectedDropletIds([]);
-      setActionFeedback(`Destroyed ${selectedSet.size} droplet(s)`);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error");
-    } finally {
-      setLoading(false);
-    }
+    const selectedDroplets = droplets.filter((d) => selectedSet.has(d.id));
+    const names = selectedDroplets.map((d) => d.name).join(", ");
+    setAiModalType("bulk-delete");
+    setAiModalData({ ids: Array.from(selectedSet), names });
+    setAiModalOpen(true);
+    // Send message to AI to bulk delete droplets via MCP
+    const message = `[DROPLET_ACTION] Please destroy ${selectedSet.size} droplet(s): ${names}. This action cannot be undone. Confirm the bulk deletion via MCP.`;
+    setValue(message);
+    await submitMessage({ streamResponse: true });
+    setActionFeedback(`Requested AI to destroy ${selectedSet.size} droplet(s)`);
   };
 
   return (
@@ -877,6 +980,13 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
               onClose={() => setShowCreate(false)}
               onCreate={handleCreate}
               loading={loading}
+            />
+
+            <AIActionModal
+              open={aiModalOpen}
+              onClose={() => setAiModalOpen(false)}
+              type={aiModalType}
+              data={aiModalData}
             />
           </>
         ) : activeNav === "kubernetes" ? (

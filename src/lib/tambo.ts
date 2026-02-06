@@ -19,6 +19,12 @@ import {
   dropletRebootComponent,
   dropletViewComponent,
   dropletListComponent,
+  dropletActionsComponent,
+  regionListComponent,
+  sizeListComponent,
+  imageListComponent,
+  kernelListComponent,
+  backupPolicyComponent,
   // Kubernetes
   clusterCreateComponent,
   clusterDeleteComponent,
@@ -44,6 +50,10 @@ import {
   firewallDeleteComponent,
   firewallViewComponent,
   firewallListComponent,
+  // Spaces
+  spacesViewComponent,
+  // Insights
+  insightsViewComponent,
 } from "@/components/tambo/digitalocean";
 
 /**
@@ -72,6 +82,12 @@ export const components: TamboComponent[] = [
   dropletRebootComponent,
   dropletViewComponent,
   dropletListComponent,
+  dropletActionsComponent,
+  regionListComponent,
+  sizeListComponent,
+  imageListComponent,
+  kernelListComponent,
+  backupPolicyComponent,
   // Kubernetes
   clusterCreateComponent,
   clusterDeleteComponent,
@@ -97,4 +113,8 @@ export const components: TamboComponent[] = [
   firewallDeleteComponent,
   firewallViewComponent,
   firewallListComponent,
+  // Spaces
+  spacesViewComponent,
+  // Insights
+  insightsViewComponent,
 ];

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
-import { useTamboStreamStatus } from "@tambo-ai/react";
+import { useTamboStreamStatus, useTamboThreadInput } from "@tambo-ai/react";
 import { z } from "zod";
 import { useInfraStore } from "@/lib/infra-store";
 import {
@@ -147,6 +147,7 @@ const DropletView: React.FC<DropletViewProps> = (props) => {
   const [deleted, setDeleted] = React.useState(false);
   const { streamStatus } = useTamboStreamStatus();
   const isStreaming = streamStatus?.isStreaming ?? false;
+  const { setValue, submit: submitMessage } = useTamboThreadInput();
 
   React.useEffect(() => {
     if (actionFeedback) {
@@ -201,18 +202,44 @@ const DropletView: React.FC<DropletViewProps> = (props) => {
 
   if (!droplet) {
     return (
-      <div className="w-full max-w-2xl bg-[#0d1117] border border-gray-700 rounded-lg overflow-hidden text-gray-100 p-6 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-700/50 flex items-center justify-center">
-          <AlertCircle className="w-8 h-8 text-gray-400" />
+      <div className="w-full max-w-2xl bg-[#0d1117] border border-gray-700 rounded-lg overflow-hidden text-gray-100 p-8">
+        <div className="flex flex-col items-center text-center">
+          <div className="w-20 h-20 rounded-full bg-[#21262d] flex items-center justify-center mb-5">
+            <AlertCircle className="w-10 h-10 text-[#7d8590]" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2 text-white">
+            Droplet Not Found
+          </h3>
+          <p className="text-[#7d8590] mb-6 max-w-md">
+            {dropletId
+              ? `No droplet found with ID ${dropletId}. It may have been deleted, or is still initializing.`
+              : dropletName
+              ? `No droplet found with name "${dropletName}". It may have been renamed, deleted, or not yet created.`
+              : "No droplet specified. Please provide a droplet ID or name."}
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setValue("List all my droplets");
+                void submitMessage({ streamResponse: true });
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors"
+            >
+              <Server className="w-4 h-4" />
+              List Droplets
+            </button>
+            <span className="text-[#7d8590] text-sm">or</span>
+            <button
+              onClick={() => {
+                setValue("Create a new droplet");
+                void submitMessage({ streamResponse: true });
+              }}
+              className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
+            >
+              Create new
+            </button>
+          </div>
         </div>
-        <h3 className="text-xl font-semibold mb-2">Droplet Not Found</h3>
-        <p className="text-gray-400">
-          {dropletId
-            ? `No droplet found with ID ${dropletId}`
-            : dropletName
-            ? `No droplet found with name "${dropletName}"`
-            : "No droplet specified"}
-        </p>
       </div>
     );
   }
