@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
-import { useTamboComponentState } from "@tambo-ai/react";
+import { useTamboComponentState, useTamboStreamStatus } from "@tambo-ai/react";
 import { z } from "zod";
 import {
   Server,
@@ -74,6 +74,8 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
   const [error, setError] = useTamboComponentState<string | null>("error", null, null);
   const [success, setSuccess] = useTamboComponentState("success", false, false);
   const [expandedSection, setExpandedSection] = React.useState<string | null>("region");
+  const { streamStatus } = useTamboStreamStatus();
+  const isStreaming = streamStatus?.isStreaming ?? false;
 
   // Handle user clicking Create - calls API directly for dashboard functionality
   const handleCreate = async () => {
@@ -295,7 +297,7 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
         </div>
         <button
           onClick={() => void handleCreate()}
-          disabled={loading || !name?.trim()}
+          disabled={loading || !name?.trim() || isStreaming}
           className="flex items-center gap-2 px-6 py-2.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}

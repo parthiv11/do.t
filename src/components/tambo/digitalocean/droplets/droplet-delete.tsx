@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
+import { useTamboComponentState, useTamboStreamStatus } from "@tambo-ai/react";
 import { z } from "zod";
 import { useInfraStore } from "@/lib/infra-store";
 import {
@@ -42,10 +43,12 @@ const DropletDelete: React.FC<DropletDeleteProps> = (props) => {
     return undefined;
   }, [droplets, dropletId, dropletName]);
 
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [deleted, setDeleted] = React.useState(false);
-  const [confirmText, setConfirmText] = React.useState("");
+  const [loading, setLoading] = useTamboComponentState("loading", false, false);
+  const [error, setError] = useTamboComponentState<string | null>("error", null, null);
+  const [deleted, setDeleted] = useTamboComponentState("deleted", false, false);
+  const [confirmText, setConfirmText] = useTamboComponentState("confirmText", "", "");
+  const { streamStatus } = useTamboStreamStatus();
+  const isStreaming = streamStatus?.isStreaming ?? false;
 
   const handleDelete = async () => {
     if (!droplet) return;
@@ -99,7 +102,7 @@ const DropletDelete: React.FC<DropletDeleteProps> = (props) => {
     );
   }
 
-  const canDelete = confirmText.toLowerCase() === droplet.name.toLowerCase();
+  const canDelete = (confirmText ?? "").toLowerCase() === droplet.name.toLowerCase();
 
   return (
     <div className="w-full max-w-md bg-[#0d1117] border border-red-900/50 rounded-lg overflow-hidden text-gray-100">
@@ -158,7 +161,7 @@ const DropletDelete: React.FC<DropletDeleteProps> = (props) => {
       <div className="px-6 py-4 border-t border-gray-700 flex justify-end gap-3 bg-[#161b22]">
         <button
           onClick={() => void handleDelete()}
-          disabled={loading || !canDelete}
+          disabled={loading || !canDelete || isStreaming}
           className="flex items-center gap-2 px-6 py-2.5 rounded-md bg-red-600 hover:bg-red-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? (

@@ -167,21 +167,21 @@ export const MessageThreadFull = React.forwardRef<
   const defaultSuggestions: Suggestion[] = [
     {
       id: "suggestion-1",
-      title: "Get started",
-      detailedSuggestion: "What can you help me with?",
-      messageId: "welcome-query",
+      title: "List my Droplets",
+      detailedSuggestion: "Show me all my DigitalOcean droplets and their status.",
+      messageId: "list-droplets-query",
     },
     {
       id: "suggestion-2",
-      title: "Learn more",
-      detailedSuggestion: "Tell me about your capabilities.",
-      messageId: "capabilities-query",
+      title: "Create a Droplet",
+      detailedSuggestion: "Create a new Ubuntu droplet in NYC with 1 GB RAM.",
+      messageId: "create-droplet-query",
     },
     {
       id: "suggestion-3",
-      title: "Examples",
-      detailedSuggestion: "Show me some example queries I can try.",
-      messageId: "examples-query",
+      title: "Manage infrastructure",
+      detailedSuggestion: "What DigitalOcean resources can I manage with you?",
+      messageId: "capabilities-query",
     },
   ];
 

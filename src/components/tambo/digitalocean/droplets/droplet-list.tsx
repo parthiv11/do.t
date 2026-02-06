@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
+import { useTamboStreamStatus } from "@tambo-ai/react";
 import { z } from "zod";
 import { useInfraStore } from "@/lib/infra-store";
 import {
@@ -90,6 +91,8 @@ const DropletList: React.FC<DropletListProps> = (props) => {
 
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const { streamStatus } = useTamboStreamStatus();
+  const isStreaming = streamStatus?.isStreaming ?? false;
 
   const refresh = React.useCallback(async () => {
     setLoading(true);
@@ -133,7 +136,7 @@ const DropletList: React.FC<DropletListProps> = (props) => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => void refresh()}
-            disabled={loading}
+            disabled={loading || isStreaming}
             className="p-2 rounded-md hover:bg-gray-700 disabled:opacity-50 transition-colors"
             title="Refresh"
           >

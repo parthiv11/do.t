@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
+import { useTamboComponentState, useTamboStreamStatus } from "@tambo-ai/react";
 import { z } from "zod";
 import { useInfraStore } from "@/lib/infra-store";
 import {
@@ -40,9 +41,11 @@ const DropletReboot: React.FC<DropletRebootProps> = (props) => {
     return undefined;
   }, [droplets, dropletId, dropletName]);
 
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [rebooted, setRebooted] = React.useState(false);
+  const [loading, setLoading] = useTamboComponentState("loading", false, false);
+  const [error, setError] = useTamboComponentState<string | null>("error", null, null);
+  const [rebooted, setRebooted] = useTamboComponentState("rebooted", false, false);
+  const { streamStatus } = useTamboStreamStatus();
+  const isStreaming = streamStatus?.isStreaming ?? false;
 
   const handleReboot = async () => {
     if (!droplet) return;
@@ -140,7 +143,7 @@ const DropletReboot: React.FC<DropletRebootProps> = (props) => {
       <div className="px-6 py-4 border-t border-gray-700 flex justify-end gap-3 bg-[#161b22]">
         <button
           onClick={() => void handleReboot()}
-          disabled={loading}
+          disabled={loading || isStreaming}
           className="flex items-center gap-2 px-6 py-2.5 rounded-md bg-yellow-600 hover:bg-yellow-700 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? (

@@ -54,8 +54,7 @@ import {
  */
 
 export const tools: TamboTool[] = [
-  // DigitalOcean infra tools - TEMPORARILY DISABLED
-  // ...digitalOceanTools,
+  ...digitalOceanTools,
 ];
 
 /**

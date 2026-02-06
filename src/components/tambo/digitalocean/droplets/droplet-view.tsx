@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
+import { useTamboStreamStatus } from "@tambo-ai/react";
 import { z } from "zod";
 import { useInfraStore } from "@/lib/infra-store";
 import {
@@ -144,6 +145,8 @@ const DropletView: React.FC<DropletViewProps> = (props) => {
   const [error, setError] = React.useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = React.useState<string | null>(null);
   const [deleted, setDeleted] = React.useState(false);
+  const { streamStatus } = useTamboStreamStatus();
+  const isStreaming = streamStatus?.isStreaming ?? false;
 
   React.useEffect(() => {
     if (actionFeedback) {
@@ -317,7 +320,7 @@ const DropletView: React.FC<DropletViewProps> = (props) => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => void handleReboot()}
-            disabled={loading}
+            disabled={loading || isStreaming}
             className="flex items-center gap-2 px-4 py-2 rounded-md border border-gray-600 hover:bg-gray-700 text-sm font-medium disabled:opacity-50 transition-colors"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
@@ -337,7 +340,7 @@ const DropletView: React.FC<DropletViewProps> = (props) => {
         </div>
         <button
           onClick={() => void handleDelete()}
-          disabled={loading}
+          disabled={loading || isStreaming}
           className="flex items-center gap-2 px-4 py-2 rounded-md bg-red-600/20 text-red-400 hover:bg-red-600/30 text-sm font-medium disabled:opacity-50 transition-colors"
         >
           <Trash2 className="w-4 h-4" />
