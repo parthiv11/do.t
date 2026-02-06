@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
-import { useTamboComponentState, useTamboStreamStatus } from "@tambo-ai/react";
+import { useTamboComponentState, useTamboStreamStatus, useTamboThreadInput } from "@tambo-ai/react";
 import { z } from "zod";
 import {
   Server,
@@ -76,6 +76,7 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
   const [expandedSection, setExpandedSection] = React.useState<string | null>("region");
   const { streamStatus } = useTamboStreamStatus();
   const isStreaming = streamStatus?.isStreaming ?? false;
+  const { setValue, submit: submitMessage } = useTamboThreadInput();
 
   // Handle user clicking Create - calls API directly for dashboard functionality
   const handleCreate = async () => {
@@ -109,6 +110,13 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
       }
       
       setSuccess(true);
+      // Notify the chat so the AI continues the conversation
+      try {
+        setValue(`Droplet "${name.trim()}" was just created in ${region} (${size}, ${image}). Show me its status.`);
+        await submitMessage({ streamResponse: true });
+      } catch {
+        // Chat notification is best-effort
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error creating droplet");
     } finally {

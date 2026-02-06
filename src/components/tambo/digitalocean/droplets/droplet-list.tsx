@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
-import { useTamboStreamStatus } from "@tambo-ai/react";
+import { useTamboStreamStatus, useTamboThreadInput } from "@tambo-ai/react";
 import { z } from "zod";
 import { useInfraStore } from "@/lib/infra-store";
 import {
@@ -93,6 +93,17 @@ const DropletList: React.FC<DropletListProps> = (props) => {
   const [error, setError] = React.useState<string | null>(null);
   const { streamStatus } = useTamboStreamStatus();
   const isStreaming = streamStatus?.isStreaming ?? false;
+  const { setValue, submit: submitMessage, isPending } = useTamboThreadInput();
+
+  const handleDropletClick = React.useCallback(async (droplet: { id: number; name: string; status: string; region: string; size: string }) => {
+    if (isPending) return;
+    setValue(`Show me details for droplet "${droplet.name}" (ID: ${droplet.id}, ${droplet.region}, ${droplet.size}, status: ${droplet.status})`);
+    try {
+      await submitMessage({ streamResponse: true });
+    } catch {
+      // best-effort
+    }
+  }, [setValue, submitMessage, isPending]);
 
   const refresh = React.useCallback(async () => {
     setLoading(true);
@@ -174,7 +185,8 @@ const DropletList: React.FC<DropletListProps> = (props) => {
           droplets.map((droplet) => (
             <div
               key={droplet.id}
-              className="px-6 py-4 hover:bg-gray-800/50 transition-colors"
+              onClick={() => void handleDropletClick(droplet)}
+              className="px-6 py-4 hover:bg-gray-800/50 transition-colors cursor-pointer"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">

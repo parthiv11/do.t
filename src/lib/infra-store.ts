@@ -13,18 +13,81 @@ export type DropletSummary = {
   createdAt?: string;
 };
 
+export type KubernetesClusterSummary = {
+  id: string;
+  name: string;
+  region: string;
+  version: string;
+  nodeCount: number;
+  status: string;
+  createdAt?: string;
+};
+
+export type DatabaseSummary = {
+  id: string;
+  name: string;
+  engine: string;
+  version: string;
+  region: string;
+  size: string;
+  status: string;
+  numNodes: number;
+  createdAt?: string;
+};
+
+export type DomainSummary = {
+  name: string;
+  ttl: number;
+  recordCount: number;
+};
+
+export type VolumeSummary = {
+  id: string;
+  name: string;
+  region: string;
+  sizeGigabytes: number;
+  dropletIds: number[];
+  filesystemType: string;
+  createdAt?: string;
+};
+
+export type FirewallSummary = {
+  id: string;
+  name: string;
+  status: string;
+  dropletIds: number[];
+  inboundRuleCount: number;
+  outboundRuleCount: number;
+  createdAt?: string;
+};
+
 type InfraState = {
   droplets: DropletSummary[];
   selectedDropletIds: number[];
+  kubernetes: KubernetesClusterSummary[];
+  databases: DatabaseSummary[];
+  domains: DomainSummary[];
+  volumes: VolumeSummary[];
+  firewalls: FirewallSummary[];
   lastRefreshedAt: string | null;
   setDroplets: (droplets: DropletSummary[]) => void;
   setSelectedDropletIds: (ids: number[]) => void;
+  setKubernetes: (clusters: KubernetesClusterSummary[]) => void;
+  setDatabases: (databases: DatabaseSummary[]) => void;
+  setDomains: (domains: DomainSummary[]) => void;
+  setVolumes: (volumes: VolumeSummary[]) => void;
+  setFirewalls: (firewalls: FirewallSummary[]) => void;
   clear: () => void;
 };
 
 export const useInfraStore = create<InfraState>((set) => ({
   droplets: [],
   selectedDropletIds: [],
+  kubernetes: [],
+  databases: [],
+  domains: [],
+  volumes: [],
+  firewalls: [],
   lastRefreshedAt: null,
   setDroplets: (droplets) =>
     set({
@@ -32,5 +95,25 @@ export const useInfraStore = create<InfraState>((set) => ({
       lastRefreshedAt: new Date().toISOString(),
     }),
   setSelectedDropletIds: (ids) => set({ selectedDropletIds: ids }),
-  clear: () => set({ droplets: [], selectedDropletIds: [], lastRefreshedAt: null }),
+  setKubernetes: (kubernetes) =>
+    set({ kubernetes, lastRefreshedAt: new Date().toISOString() }),
+  setDatabases: (databases) =>
+    set({ databases, lastRefreshedAt: new Date().toISOString() }),
+  setDomains: (domains) =>
+    set({ domains, lastRefreshedAt: new Date().toISOString() }),
+  setVolumes: (volumes) =>
+    set({ volumes, lastRefreshedAt: new Date().toISOString() }),
+  setFirewalls: (firewalls) =>
+    set({ firewalls, lastRefreshedAt: new Date().toISOString() }),
+  clear: () =>
+    set({
+      droplets: [],
+      selectedDropletIds: [],
+      kubernetes: [],
+      databases: [],
+      domains: [],
+      volumes: [],
+      firewalls: [],
+      lastRefreshedAt: null,
+    }),
 }));

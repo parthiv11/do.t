@@ -11,6 +11,7 @@
 import type { TamboComponent } from "@tambo-ai/react";
 import { TamboTool } from "@tambo-ai/react";
 import { digitalOceanTools } from "@/tools/digitalocean-tools";
+import { syncTools } from "@/tools/sync-tools";
 import {
   // Droplets
   dropletCreateComponent,
@@ -54,7 +55,9 @@ import {
  */
 
 export const tools: TamboTool[] = [
-  ...digitalOceanTools,
+  // Local API tools temporarily disabled - using MCP only
+  // ...digitalOceanTools,
+  ...syncTools,
 ];
 
 /**

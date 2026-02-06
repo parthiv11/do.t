@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
-import { useTamboComponentState } from "@tambo-ai/react";
+import { useTamboComponentState, useTamboThreadInput } from "@tambo-ai/react";
 import { z } from "zod";
 import {
   Database,
@@ -62,8 +62,9 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
   const [error, setError] = useTamboComponentState<string | null>("error", null, null);
   const [success, setSuccess] = useTamboComponentState("success", false, false);
   const [expandedSection, setExpandedSection] = React.useState<string | null>("engine");
+  const { setValue, submit: submitMessage } = useTamboThreadInput();
 
-  // Handle user clicking Create - calls API directly for dashboard functionality
+  // Handle user clicking Create - sends message to AI/MCP to create database
   const handleCreate = async () => {
     if (!name?.trim()) {
       setError("Database name is required");
@@ -73,26 +74,10 @@ const DatabaseCreate: React.FC<DatabaseCreateProps> = (props) => {
     setLoading(true);
     
     try {
-      const res = await fetch("/api/digitalocean/databases", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          engine,
-          region,
-          size,
-        }),
-      });
-      
-      const text = await res.text();
-      const body = text ? JSON.parse(text) : null;
-      
-      if (!res.ok) {
-        const errorMsg = body?.error || `Failed (${res.status})`;
-        const details = body?.details ? JSON.stringify(body.details) : "";
-        throw new Error(details ? `${errorMsg}: ${details}` : errorMsg);
-      }
-      
+      // Send message to AI/MCP to create the database
+      const engineLabel = ENGINES.find(e => e.value === engine)?.label || engine;
+      setValue(`Create a ${engineLabel} database cluster named "${name.trim()}" in ${region} with size ${size}`);
+      await submitMessage({ streamResponse: true });
       setSuccess(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error creating database");

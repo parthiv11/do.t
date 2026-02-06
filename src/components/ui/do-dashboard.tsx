@@ -2,7 +2,15 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { useInfraStore, type DropletSummary } from "@/lib/infra-store";
+import {
+  useInfraStore,
+  type DropletSummary,
+  type KubernetesClusterSummary,
+  type DatabaseSummary,
+  type DomainSummary,
+  type VolumeSummary,
+  type FirewallSummary,
+} from "@/lib/infra-store";
 import { useTheme } from "@/components/theme-provider";
 import {
   Server,
@@ -170,6 +178,88 @@ function ResourcePlaceholder({ resourceType, icon: Icon }: { resourceType: strin
           <Plus className="w-4 h-4" />
           {info.createLabel}
         </button>
+      </div>
+    </>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const normalized = status.toLowerCase();
+  if (normalized === "active" || normalized === "running" || normalized === "online") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
+        <CheckCircle2 className="w-3 h-3" />
+        {status}
+      </span>
+    );
+  }
+  if (normalized === "new" || normalized === "starting" || normalized === "provisioning" || normalized === "pending") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
+        {status}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 text-gray-400">
+      {status}
+    </span>
+  );
+}
+
+function ResourceListView<T>({
+  title,
+  icon: Icon,
+  createLabel,
+  items,
+  columns,
+  renderRow,
+}: {
+  title: string;
+  icon: React.ElementType;
+  createLabel: string;
+  items: T[];
+  columns: string[];
+  renderRow: (item: T) => React.ReactNode;
+}) {
+  if (items.length === 0) {
+    return (
+      <ResourcePlaceholder
+        resourceType={Object.keys(RESOURCE_INFO).find((k) => RESOURCE_INFO[k].title === title) || title.toLowerCase().replace(/\s+/g, "")}
+        icon={Icon}
+      />
+    );
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[#21262d]">
+        <div>
+          <h1 className="text-xl font-semibold">{title}</h1>
+          <p className="text-sm text-[#7d8590]">
+            {items.length} resource{items.length !== 1 ? "s" : ""}
+          </p>
+        </div>
+        <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">
+          <Plus className="w-4 h-4" />
+          {createLabel}
+        </button>
+      </div>
+      <div className="flex-1 overflow-auto">
+        <div className="p-6">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-[#30363d] text-left text-sm text-[#7d8590]">
+                {columns.map((col) => (
+                  <th key={col} className="py-3 px-4 font-medium">{col}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => renderRow(item))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </>
   );
@@ -445,13 +535,19 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
 
   const { theme, setTheme } = useTheme();
 
+  const kubernetes = useInfraStore((s) => s.kubernetes);
+  const databases = useInfraStore((s) => s.databases);
+  const domains = useInfraStore((s) => s.domains);
+  const volumes = useInfraStore((s) => s.volumes);
+  const firewalls = useInfraStore((s) => s.firewalls);
+
   const navItems: NavItem[] = [
     { id: "droplets", label: "Droplets", icon: Server, count: droplets.length },
-    { id: "kubernetes", label: "Kubernetes", icon: Box, count: 0 },
-    { id: "databases", label: "Databases", icon: Database, count: 0 },
-    { id: "domains", label: "Domains", icon: Globe, count: 0 },
-    { id: "volumes", label: "Volumes", icon: HardDrive, count: 0 },
-    { id: "firewalls", label: "Firewalls", icon: Shield, count: 0 },
+    { id: "kubernetes", label: "Kubernetes", icon: Box, count: kubernetes.length },
+    { id: "databases", label: "Databases", icon: Database, count: databases.length },
+    { id: "domains", label: "Domains", icon: Globe, count: domains.length },
+    { id: "volumes", label: "Volumes", icon: HardDrive, count: volumes.length },
+    { id: "firewalls", label: "Firewalls", icon: Shield, count: firewalls.length },
   ];
 
   const refresh = React.useCallback(async () => {
@@ -562,14 +658,15 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
       <div className="w-56 flex-shrink-0 border-r border-[#21262d] bg-[#010409] flex flex-col">
         {/* Branding */}
         <div className="p-4 border-b border-[#21262d]">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
-              <img src="/logo.png" alt="DO.T" className="w-full h-full object-contain" />
+          <div className="flex flex-col ">
+            <div className="w-15 h-15 rounded-lg flex items-center justify-center overflow-hidden">
+              <img
+                src={theme === "light" ? "/light-theme-logo.png" : "/dark-theme-logo.png"}
+                alt="DO.T"
+                className="w-full h-full object-contain"
+              />
             </div>
-            <div className="flex flex-col">
-              <span className="font-semibold text-sm leading-tight">DO.T</span>
-              <span className="text-[10px] text-[#7d8590] leading-tight">Chat-first DigitalOcean</span>
-            </div>
+            <span className="text-[10px] text-[#7d8590] leading-tight">Chat-first DigitalOcean</span>
           </div>
         </div>
         <nav className="flex-1 py-2">
@@ -782,6 +879,109 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
               loading={loading}
             />
           </>
+        ) : activeNav === "kubernetes" ? (
+          <ResourceListView
+            title="Kubernetes Clusters"
+            icon={Box}
+            createLabel="Create Cluster"
+            items={kubernetes}
+            columns={["Name", "Region", "Version", "Nodes", "Status"]}
+            renderRow={(cluster: KubernetesClusterSummary) => (
+              <tr key={cluster.id} className="border-b border-[#30363d] hover:bg-[#161b22] transition-colors">
+                <td className="py-3 px-4">
+                  <div className="flex items-center gap-3">
+                    <StatusDot status={cluster.status} />
+                    <span className="font-medium text-[#e6edf3]">{cluster.name}</span>
+                  </div>
+                </td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">{cluster.region.toUpperCase()}</td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">v{cluster.version}</td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">{cluster.nodeCount}</td>
+                <td className="py-3 px-4"><StatusBadge status={cluster.status} /></td>
+              </tr>
+            )}
+          />
+        ) : activeNav === "databases" ? (
+          <ResourceListView
+            title="Managed Databases"
+            icon={Database}
+            createLabel="Create Database"
+            items={databases}
+            columns={["Name", "Engine", "Region", "Size", "Nodes", "Status"]}
+            renderRow={(db: DatabaseSummary) => (
+              <tr key={db.id} className="border-b border-[#30363d] hover:bg-[#161b22] transition-colors">
+                <td className="py-3 px-4">
+                  <div className="flex items-center gap-3">
+                    <StatusDot status={db.status} />
+                    <span className="font-medium text-[#e6edf3]">{db.name}</span>
+                  </div>
+                </td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">{db.engine} {db.version}</td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">{db.region.toUpperCase()}</td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">{db.size}</td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">{db.numNodes}</td>
+                <td className="py-3 px-4"><StatusBadge status={db.status} /></td>
+              </tr>
+            )}
+          />
+        ) : activeNav === "domains" ? (
+          <ResourceListView
+            title="Domains"
+            icon={Globe}
+            createLabel="Add Domain"
+            items={domains}
+            columns={["Domain", "TTL", "Records"]}
+            renderRow={(domain: DomainSummary) => (
+              <tr key={domain.name} className="border-b border-[#30363d] hover:bg-[#161b22] transition-colors">
+                <td className="py-3 px-4">
+                  <span className="font-medium text-[#e6edf3]">{domain.name}</span>
+                </td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">{domain.ttl}s</td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">{domain.recordCount}</td>
+              </tr>
+            )}
+          />
+        ) : activeNav === "volumes" ? (
+          <ResourceListView
+            title="Volumes"
+            icon={HardDrive}
+            createLabel="Create Volume"
+            items={volumes}
+            columns={["Name", "Region", "Size", "Filesystem", "Attached"]}
+            renderRow={(vol: VolumeSummary) => (
+              <tr key={vol.id} className="border-b border-[#30363d] hover:bg-[#161b22] transition-colors">
+                <td className="py-3 px-4">
+                  <span className="font-medium text-[#e6edf3]">{vol.name}</span>
+                </td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">{vol.region.toUpperCase()}</td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">{vol.sizeGigabytes} GB</td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">{vol.filesystemType || "—"}</td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">{vol.dropletIds.length > 0 ? `${vol.dropletIds.length} droplet(s)` : "Unattached"}</td>
+              </tr>
+            )}
+          />
+        ) : activeNav === "firewalls" ? (
+          <ResourceListView
+            title="Firewalls"
+            icon={Shield}
+            createLabel="Create Firewall"
+            items={firewalls}
+            columns={["Name", "Status", "Inbound Rules", "Outbound Rules", "Droplets"]}
+            renderRow={(fw: FirewallSummary) => (
+              <tr key={fw.id} className="border-b border-[#30363d] hover:bg-[#161b22] transition-colors">
+                <td className="py-3 px-4">
+                  <div className="flex items-center gap-3">
+                    <StatusDot status={fw.status} />
+                    <span className="font-medium text-[#e6edf3]">{fw.name}</span>
+                  </div>
+                </td>
+                <td className="py-3 px-4"><StatusBadge status={fw.status} /></td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">{fw.inboundRuleCount}</td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">{fw.outboundRuleCount}</td>
+                <td className="py-3 px-4 text-sm text-[#7d8590]">{fw.dropletIds.length}</td>
+              </tr>
+            )}
+          />
         ) : (
           <ResourcePlaceholder
             resourceType={activeNav}
