@@ -146,8 +146,7 @@ const ThreadContentMessages = React.forwardRef<
       >
         <p className="text-foreground font-medium">What do you want to do?</p>
         <p className="mt-1 text-sm text-muted-foreground max-w-sm">
-          Type a message below or pick a suggestion. Use ⌘⌥1–3 (Mac) or
-          Ctrl+Alt+1–3 (Windows/Linux) to insert suggestions quickly.
+          Type a message below or pick a suggestion. Press 1, 2, or 3 to insert suggestions quickly.
         </p>
       </div>
     );
