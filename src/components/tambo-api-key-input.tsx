@@ -18,9 +18,9 @@ export function TamboApiKeyInput({ onApiKeySubmit, onClose }: TamboApiKeyInputPr
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
-  // Tambo API keys start with "tambo_" and are typically longer
+  // Tambo API keys start with "tambo_" followed by base64 characters
   const isValid = useMemo(() => {
-    return apiKey.length >= 20 && /^tambo_[a-zA-Z0-9_-]+$/.test(apiKey);
+    return apiKey.length >= 20 && /^tambo_[a-zA-Z0-9_+/=]+$/.test(apiKey);
   }, [apiKey]);
 
   const handleSubmit = (e: React.FormEvent) => {
