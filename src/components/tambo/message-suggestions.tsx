@@ -6,6 +6,7 @@ import {
   TooltipProvider,
 } from "@/components/tambo/suggestions-tooltip";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/theme-provider";
 import type { Suggestion, TamboThread } from "@tambo-ai/react";
 import { useTambo, useTamboSuggestions } from "@tambo-ai/react";
 import { Loader2Icon } from "lucide-react";
@@ -169,18 +170,22 @@ const MessageSuggestions = React.forwardRef<
       };
     }, [lastAiMessage, suggestions.length]);
 
-    // Handle keyboard shortcuts for selecting suggestions
+    // Handle keyboard shortcuts for selecting suggestions - simpler shortcuts
     useEffect(() => {
       if (!suggestions || suggestions.length === 0) return;
 
       const handleKeyDown = (event: KeyboardEvent) => {
-        const modifierPressed = isMac
-          ? event.metaKey && event.altKey
-          : event.ctrlKey && event.altKey;
-
-        if (modifierPressed) {
-          const keyNum = parseInt(event.key);
-          if (!isNaN(keyNum) && keyNum > 0 && keyNum <= suggestions.length) {
+        // Check if user is typing in an input/textarea
+        const target = event.target as HTMLElement;
+        const isInputFocused = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+        
+        // Use simple number keys 1-3 when not typing in an input
+        // or Ctrl+Number as alternative
+        const keyNum = parseInt(event.key);
+        if (!isNaN(keyNum) && keyNum > 0 && keyNum <= suggestions.length) {
+          // Accept if: (1) Ctrl/Cmd is pressed, OR (2) not typing in input
+          const modifierPressed = event.ctrlKey || event.metaKey;
+          if (modifierPressed || !isInputFocused) {
             event.preventDefault();
             const suggestionIndex = keyNum - 1;
             accept({ suggestion: suggestions[suggestionIndex] as Suggestion });
@@ -193,7 +198,7 @@ const MessageSuggestions = React.forwardRef<
       return () => {
         document.removeEventListener("keydown", handleKeyDown);
       };
-    }, [suggestions, accept, isMac]);
+    }, [suggestions, accept]);
 
     // If we have no messages yet and no initial suggestions, render nothing
     if (!thread?.messages?.length && initialSuggestions.length === 0) {
@@ -303,11 +308,10 @@ const MessageSuggestionsList = React.forwardRef<
   HTMLDivElement,
   MessageSuggestionsListProps
 >(({ className, ...props }, ref) => {
-  const { suggestions, selectedSuggestionId, accept, isGenerating, isMac } =
+  const { suggestions, selectedSuggestionId, accept, isGenerating } =
     useMessageSuggestionsContext();
-
-  const modKey = isMac ? "⌘" : "Ctrl";
-  const altKey = isMac ? "⌥" : "Alt";
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
 
   // Create placeholder suggestions when there are no real suggestions
   const placeholders = Array(3).fill(null);
@@ -316,8 +320,9 @@ const MessageSuggestionsList = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "flex space-x-2 overflow-x-auto pb-2 rounded-md bg-transparent min-h-[2.5rem]",
+        "flex space-x-2 overflow-x-auto pb-2 rounded-md min-h-[2.5rem]",
         isGenerating ? "opacity-70" : "",
+        isDark ? "bg-transparent" : "bg-transparent",
         className,
       )}
       data-slot="message-suggestions-list"
@@ -329,20 +334,25 @@ const MessageSuggestionsList = React.forwardRef<
               key={suggestion.id}
               content={
                 <span suppressHydrationWarning>
-                  {modKey}+{altKey}+{index + 1}
+                  Press {index + 1} to select
                 </span>
               }
               side="top"
             >
               <button
                 className={cn(
-                  "py-2 px-2.5 rounded-2xl text-xs transition-colors",
-                  "border border-flat",
+                  "py-2 px-2.5 rounded-2xl text-xs transition-all duration-200 border",
                   isGenerating
-                    ? "bg-muted/50 text-muted-foreground"
+                    ? isDark
+                      ? "bg-slate-800/50 text-slate-500 border-slate-700 cursor-not-allowed"
+                      : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                     : selectedSuggestionId === suggestion.id
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-background hover:bg-accent hover:text-accent-foreground",
+                      ? isDark
+                        ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30"
+                        : "bg-indigo-50 text-indigo-600 border-indigo-200"
+                      : isDark
+                        ? "bg-slate-800/50 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-slate-200"
+                        : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:text-gray-900",
                 )}
                 onClick={async () =>
                   !isGenerating && (await accept({ suggestion }))
@@ -351,7 +361,13 @@ const MessageSuggestionsList = React.forwardRef<
                 data-suggestion-id={suggestion.id}
                 data-suggestion-index={index}
               >
-                <span className="font-medium">{suggestion.title}</span>
+                <span className="font-medium flex items-center gap-1.5">
+                  <span className={cn(
+                    "flex items-center justify-center w-4 h-4 rounded text-[10px] font-bold",
+                    isDark ? "bg-slate-700 text-slate-400" : "bg-gray-200 text-gray-500"
+                  )}>{index + 1}</span>
+                  {suggestion.title}
+                </span>
               </button>
             </Tooltip>
           ))
@@ -359,10 +375,20 @@ const MessageSuggestionsList = React.forwardRef<
           placeholders.map((_, index) => (
             <div
               key={`placeholder-${index}`}
-              className="py-2 px-2.5 rounded-2xl text-xs border border-flat bg-muted/20 text-transparent animate-pulse"
+              className={cn(
+                "py-2 px-2.5 rounded-2xl text-xs border animate-pulse",
+                isDark
+                  ? "bg-slate-800/30 border-slate-700/50"
+                  : "bg-gray-100/50 border-gray-200"
+              )}
               data-placeholder-index={index}
             >
-              <span className="invisible">Placeholder</span>
+              <span className={cn(
+                "invisible font-medium flex items-center gap-1.5",
+                isDark ? "text-slate-500" : "text-gray-400"
+              )}>
+                <span className="w-4 h-4" />Placeholder
+              </span>
             </div>
           ))}
     </div>

@@ -1,5 +1,3 @@
-import "server-only";
-
 const DIGITALOCEAN_API_BASE_URL = "https://api.digitalocean.com/v2";
 
 export class DigitalOceanApiError extends Error {
@@ -50,4 +48,4 @@ function safeJsonParse(text: string): unknown {
   } catch {
     return text;
   }
-}
+} 

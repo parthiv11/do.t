@@ -132,6 +132,27 @@ const ThreadContentMessages = React.forwardRef<
     (message) => message.role !== "system" && !message.parentMessageId,
   );
 
+  if (filteredMessages.length === 0) {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "flex flex-col items-center justify-center py-16 px-4 text-center min-h-[12rem]",
+          className,
+        )}
+        data-slot="thread-content-messages"
+        data-slot-empty="true"
+        {...props}
+      >
+        <p className="text-foreground font-medium">What do you want to do?</p>
+        <p className="mt-1 text-sm text-muted-foreground max-w-sm">
+          Type a message below or pick a suggestion. Use ⌘⌥1–3 (Mac) or
+          Ctrl+Alt+1–3 (Windows/Linux) to insert suggestions quickly.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={ref}

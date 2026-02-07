@@ -2,8 +2,9 @@
 
 import { cn } from "@/lib/utils";
 import { useTambo } from "@tambo-ai/react";
+import { ChevronDown } from "lucide-react";
 import * as React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Props for the ScrollableMessageContainer component
@@ -95,21 +96,50 @@ export const ScrollableMessageContainer = React.forwardRef<
     }
   }, [messagesContent, generationStage, shouldAutoscroll]);
 
+  const scrollToBottom = useCallback(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+      setShouldAutoscroll(true);
+    }
+  }, []);
+
   return (
-    <div
-      ref={scrollContainerRef}
-      onScroll={handleScroll}
-      className={cn(
-        "flex-1 overflow-y-auto",
-        "[&::-webkit-scrollbar]:w-[6px]",
-        "[&::-webkit-scrollbar-thumb]:bg-gray-300",
-        "[&::-webkit-scrollbar:horizontal]:h-[4px]",
-        className,
+    <div className="relative flex flex-1 flex-col min-h-0">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className={cn(
+          "flex-1 overflow-y-auto min-h-0",
+          "[&::-webkit-scrollbar]:w-[6px]",
+          "[&::-webkit-scrollbar-track]:bg-transparent",
+          "[&::-webkit-scrollbar-thumb]:rounded-full",
+          "[&::-webkit-scrollbar-thumb]:bg-muted-foreground/30",
+          "dark:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40",
+          "[&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/50",
+          "[&::-webkit-scrollbar:horizontal]:h-[4px]",
+          className,
+        )}
+        data-slot="scrollable-message-container"
+        {...props}
+      >
+        {children}
+      </div>
+      {!shouldAutoscroll && (
+        <button
+          type="button"
+          onClick={scrollToBottom}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 py-2 px-3 rounded-lg bg-background border border-border shadow-md text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background transition-colors"
+          aria-label="Scroll to bottom"
+        >
+          <span className="flex items-center gap-1.5">
+            <ChevronDown className="h-4 w-4" />
+            New messages
+          </span>
+        </button>
       )}
-      data-slot="scrollable-message-container"
-      {...props}
-    >
-      {children}
     </div>
   );
 });

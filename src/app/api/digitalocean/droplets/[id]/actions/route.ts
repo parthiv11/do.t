@@ -1,11 +1,23 @@
 import { NextResponse } from "next/server";
 import { digitalOceanRequest, DigitalOceanApiError } from "@/lib/digitalocean-api";
 
+// Helper to get token from request headers or env
+function getTokenFromRequest(req: Request): string {
+  const headerToken = req.headers.get("x-digitalocean-token");
+  if (headerToken) return headerToken;
+  
+  const envToken = process.env.DIGITALOCEAN_TOKEN;
+  if (envToken) return envToken;
+  
+  throw new Error("DigitalOcean token required. Provide it via x-digitalocean-token header or set DIGITALOCEAN_TOKEN env var.");
+}
+
 export async function POST(
   req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
   try {
+    const token = getTokenFromRequest(req);
     const { id } = await ctx.params;
     const dropletId = Number(id);
     if (!Number.isFinite(dropletId) || dropletId <= 0) {
@@ -19,6 +31,7 @@ export async function POST(
     }
 
     const result = await digitalOceanRequest<unknown>(
+      token,
       `/droplets/${dropletId}/actions`,
       {
         method: "POST",

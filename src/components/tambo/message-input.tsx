@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  DropletCreateElicitationForm,
+  isDropletCreateElicitation,
+} from "@/components/tambo/digitalocean/droplets/droplet-create-elicitation";
 import { ElicitationUI } from "@/components/tambo/elicitation-ui";
 // TODO: MCP components need to be added
 // import {
@@ -388,10 +392,17 @@ const MessageInputInternal = React.forwardRef<
             </div>
           )}
           {elicitation ? (
-            <ElicitationUI
-              request={elicitation}
-              onResponse={handleElicitationResponse}
-            />
+            isDropletCreateElicitation(elicitation) ? (
+              <DropletCreateElicitationForm
+                request={elicitation}
+                onResponse={handleElicitationResponse}
+              />
+            ) : (
+              <ElicitationUI
+                request={elicitation}
+                onResponse={handleElicitationResponse}
+              />
+            )
           ) : (
             <>
               <MessageInputStagedImages />
@@ -686,21 +697,42 @@ const MessageInputError = React.forwardRef<
   HTMLParagraphElement,
   MessageInputErrorProps
 >(({ className, ...props }, ref) => {
-  const { error, submitError } = useMessageInputContext();
+  const { error, submitError, setSubmitError, textareaRef } =
+    useMessageInputContext();
 
   if (!error && !submitError) {
     return null;
   }
 
+  const message = error?.message ?? submitError;
+  const canDismiss = !!submitError && !!setSubmitError;
+
+  const handleDismiss = () => {
+    setSubmitError?.(null);
+    textareaRef?.current?.focus();
+  };
+
   return (
-    <p
-      ref={ref}
-      className={cn("text-sm text-destructive mt-2", className)}
+    <div
+      className={cn(
+        "mt-2 flex flex-wrap items-center gap-2 text-sm text-destructive",
+        className,
+      )}
       data-slot="message-input-error"
-      {...props}
     >
-      {error?.message ?? submitError}
-    </p>
+      <p ref={ref} className="flex-1 min-w-0" {...props}>
+        {message}
+      </p>
+      {canDismiss && (
+        <button
+          type="button"
+          onClick={handleDismiss}
+          className="shrink-0 font-medium underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded"
+        >
+          Dismiss
+        </button>
+      )}
+    </div>
   );
 });
 MessageInputError.displayName = "MessageInput.Error";

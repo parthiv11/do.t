@@ -13,6 +13,7 @@ import {
 } from "@/lib/infra-store";
 import { useTheme } from "@/components/theme-provider";
 import { useTambo } from "@tambo-ai/react";
+import { TokenInput, useStoredToken } from "@/components/token-input";
 import {
   Server,
   RefreshCw,
@@ -35,6 +36,8 @@ import {
   Bot,
   Sparkles,
   Rocket,
+  Key,
+  LogOut,
 } from "lucide-react";
 
 type DODashboardProps = React.HTMLAttributes<HTMLDivElement>;
@@ -47,8 +50,13 @@ type NavItem = {
   description?: string;
 };
 
-async function fetchDroplets(): Promise<DropletSummary[]> {
-  const res = await fetch("/api/digitalocean/droplets", { cache: "no-store" });
+async function fetchDroplets(token: string): Promise<DropletSummary[]> {
+  const res = await fetch("/api/digitalocean/droplets", {
+    cache: "no-store",
+    headers: {
+      "x-digitalocean-token": token,
+    },
+  });
   const text = await res.text();
   const body = text ? JSON.parse(text) : null;
   if (!res.ok) throw new Error(String(body?.error || `Failed (${res.status})`));
@@ -694,7 +702,9 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
   const [aiModalOpen, setAiModalOpen] = React.useState(false);
   const [aiModalType, setAiModalType] = React.useState<"create" | "reboot" | "delete" | "bulk-delete" | null>(null);
   const [aiModalData, setAiModalData] = React.useState<unknown>(null);
+  const [showTokenInput, setShowTokenInput] = React.useState(false);
 
+  const { token, setToken, clearToken, isReady } = useStoredToken();
   const { sendThreadMessage } = useTambo();
 
   const selectedSet = React.useMemo(() => new Set(selectedDropletIds), [selectedDropletIds]);
@@ -718,10 +728,11 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
   ];
 
   const refresh = React.useCallback(async () => {
+    if (!token) return;
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchDroplets();
+      const data = await fetchDroplets(token);
       setDroplets(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error fetching droplets");
@@ -729,13 +740,20 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
       setLoading(false);
       setInitialLoad(false);
     }
-  }, [setDroplets]);
+  }, [setDroplets, token]);
 
   React.useEffect(() => {
-    if (initialLoad) {
+    if (initialLoad && token) {
       void refresh();
     }
-  }, [initialLoad, refresh]);
+  }, [initialLoad, refresh, token]);
+
+  // Show token input when no token is stored
+  React.useEffect(() => {
+    if (isReady && !token) {
+      setShowTokenInput(true);
+    }
+  }, [isReady, token]);
 
   React.useEffect(() => {
     if (actionFeedback) {
@@ -961,11 +979,51 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
             <Sparkles className="w-3 h-3 text-indigo-500" />
             <span className={cn("text-[10px] font-medium", isDark ? "text-slate-500" : "text-gray-500")}>Powered by AI</span>
           </div>
+
+          {/* Token Management */}
+          {token && (
+            <div className={cn("mt-3 pt-3 border-t", isDark ? "border-slate-800/50" : "border-gray-200")}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Key className={cn("w-3.5 h-3.5", isDark ? "text-emerald-400" : "text-emerald-600")} />
+                  <span className={cn("text-xs font-medium", isDark ? "text-slate-400" : "text-gray-500")}>Token Active</span>
+                </div>
+                <button
+                  onClick={() => {
+                    clearToken();
+                    setDroplets([]);
+                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                    isDark 
+                      ? "text-rose-400 hover:bg-rose-500/10" 
+                      : "text-rose-600 hover:bg-rose-50"
+                  )}
+                  title="Clear token and logout"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Main content */}
       <div className={cn("flex-1 flex flex-col min-w-0", isDark ? "bg-slate-950" : "bg-gray-50")}>
+        {/* Token Input Modal */}
+        {showTokenInput && (
+          <TokenInput
+            onTokenSubmit={(newToken) => {
+              setToken(newToken);
+              setShowTokenInput(false);
+              setInitialLoad(true);
+            }}
+            onClose={token ? () => setShowTokenInput(false) : undefined}
+          />
+        )}
+        
         {activeNav === "droplets" ? (
           <>
             {/* Header */}

@@ -135,11 +135,27 @@ const createDroplet = async (params: {
   size?: string;
   image?: string;
   tags?: string[];
+  confirmed?: boolean;
 }): Promise<ApiResult<{ droplet?: DropletSummary }>> => {
+  // If not confirmed, return error to trigger elicitation
+  if (!params.confirmed) {
+    return {
+      success: false,
+      error:
+        "Confirmation required. Please confirm creation of the droplet with the user (use elicitation to request confirmation with name, region, size, and image).",
+    };
+  }
+
   try {
     const result = await apiFetch<{ droplet: unknown }>("/api/digitalocean/droplets", {
       method: "POST",
-      body: JSON.stringify(params),
+      body: JSON.stringify({
+        name: params.name,
+        region: params.region,
+        size: params.size,
+        image: params.image,
+        tags: params.tags,
+      }),
     });
 
     const droplet = toDropletSummary(result.droplet as DigitalOceanDroplet);
@@ -234,7 +250,7 @@ export const listDropletsTool = {
 export const createDropletTool = {
   name: "createDroplet",
   description:
-    "Create a new DigitalOcean droplet. Defaults: region=nyc1, size=s-1vcpu-1gb, image=ubuntu-24-04-x64.",
+    "Create a new DigitalOcean droplet. Defaults: region=nyc1, size=s-1vcpu-1gb, image=ubuntu-24-04-x64. Always confirm with the user before creating - use elicitation to request explicit confirmation with droplet name, region, size, and image.",
   tool: createDroplet,
   toolSchema: z
     .function()
@@ -254,6 +270,12 @@ export const createDropletTool = {
           .optional()
           .describe("Image slug, e.g. ubuntu-24-04-x64"),
         tags: z.array(z.string()).optional().describe("Optional tags"),
+        confirmed: z
+          .boolean()
+          .optional()
+          .describe(
+            "User confirmation flag - must be true to proceed with creation; if omitted, use elicitation to ask the user to confirm",
+          ),
       }),
     )
     .returns(
