@@ -25,10 +25,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 async function apiFetch<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
+  // Get token from localStorage (client-side only)
+  const token = typeof window !== "undefined" ? localStorage.getItem("do_token_v1") : null;
+  
   const res = await fetch(input, {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { "x-digitalocean-token": token } : {}),
       ...(init?.headers ?? {}),
     },
   });
