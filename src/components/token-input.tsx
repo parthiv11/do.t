@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
 import { Shield, AlertTriangle, Eye, EyeOff, Key, CheckCircle2, X } from "lucide-react";
@@ -15,13 +15,12 @@ export function TokenInput({ onTokenSubmit, onClose }: TokenInputProps) {
   const [token, setToken] = useState("");
   const [showToken, setShowToken] = useState(false);
   const [agreed, setAgreed] = useState(false);
-  const [isValid, setIsValid] = useState(false);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
-  useEffect(() => {
-    // DO tokens are typically 64+ chars alphanumeric
-    setIsValid(token.length >= 32 && /^[a-zA-Z0-9_-]+$/.test(token));
+  // Validate token format - useMemo instead of useEffect to avoid setState in effect
+  const isValid = useMemo(() => {
+    return token.length >= 32 && /^[a-zA-Z0-9_-]+$/.test(token);
   }, [token]);
 
   const handleSubmit = (e: React.FormEvent) => {
