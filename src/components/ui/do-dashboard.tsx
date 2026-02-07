@@ -1097,7 +1097,14 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, apiKeyReady = true
           {/* Powered by */}
           <div className={cn("flex items-center justify-center gap-2 pt-3 border-t", isDark ? "border-slate-800/50" : "border-gray-200")}>
             <Sparkles className="w-3 h-3 text-indigo-500" />
-            <span className={cn("text-[10px] font-medium", isDark ? "text-slate-500" : "text-gray-500")}>Powered by AI</span>
+            <a 
+              href="https://tambo.co" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className={cn("text-[10px] font-medium hover:underline", isDark ? "text-slate-500 hover:text-indigo-400" : "text-gray-500 hover:text-indigo-600")}
+            >
+              Powered by Tambo
+            </a>
           </div>
 
           {/* Token Management */}
