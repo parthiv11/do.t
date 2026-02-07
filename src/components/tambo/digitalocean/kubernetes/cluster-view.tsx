@@ -3,6 +3,8 @@
 import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
 import { z } from "zod";
+import { useTheme } from "@/components/theme-provider";
+import { cn } from "@/lib/utils";
 import {
   Box,
   CheckCircle2,
@@ -31,11 +33,14 @@ type ClusterViewProps = {
   tags?: string[];
 };
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, isDark }: { status: string; isDark: boolean }) {
   const normalized = status.toLowerCase();
   if (normalized === "running" || normalized === "active") {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-green-500/20 text-green-400">
+      <span className={cn(
+        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium",
+        isDark ? "bg-emerald-500/20 text-emerald-400" : "bg-emerald-100 text-emerald-700"
+      )}>
         <CheckCircle2 className="w-4 h-4" />
         Running
       </span>
@@ -43,20 +48,26 @@ function StatusBadge({ status }: { status: string }) {
   }
   if (normalized === "provisioning" || normalized === "pending") {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-yellow-500/20 text-yellow-400">
+      <span className={cn(
+        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium",
+        isDark ? "bg-amber-500/20 text-amber-400" : "bg-amber-100 text-amber-700"
+      )}>
         <Clock className="w-4 h-4" />
         {status}
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-gray-500/20 text-gray-400">
+    <span className={cn(
+      "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium",
+      isDark ? "bg-slate-500/20 text-slate-400" : "bg-gray-200 text-gray-600"
+    )}>
       {status}
     </span>
   );
 }
 
-function InfoRow({ icon: Icon, label, value, copyable }: { icon: React.ElementType; label: string; value: string; copyable?: boolean }) {
+function InfoRow({ icon: Icon, label, value, copyable, isDark }: { icon: React.ElementType; label: string; value: string; copyable?: boolean; isDark: boolean }) {
   const [copied, setCopied] = React.useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(value);
@@ -65,16 +76,37 @@ function InfoRow({ icon: Icon, label, value, copyable }: { icon: React.ElementTy
   };
 
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-700/50 last:border-0">
-      <div className="flex items-center gap-3 text-gray-400">
+    <div className={cn(
+      "flex items-center justify-between py-3 border-b last:border-0",
+      isDark ? "border-slate-700/50" : "border-gray-200"
+    )}>
+      <div className={cn(
+        "flex items-center gap-3",
+        isDark ? "text-slate-400" : "text-gray-500"
+      )}>
         <Icon className="w-4 h-4" />
         <span className="text-sm">{label}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-white">{value}</span>
+        <span className={cn(
+          "text-sm font-medium",
+          isDark ? "text-slate-100" : "text-gray-900"
+        )}>{value}</span>
         {copyable && (
-          <button onClick={handleCopy} className="p-1 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors">
-            {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+          <button 
+            onClick={handleCopy} 
+            className={cn(
+              "p-1 rounded transition-colors",
+              isDark 
+                ? "hover:bg-slate-700 text-slate-400 hover:text-slate-100" 
+                : "hover:bg-gray-200 text-gray-500 hover:text-gray-900"
+            )}
+          >
+            {copied ? (
+              <CheckCircle2 className={cn("w-3.5 h-3.5", isDark ? "text-emerald-400" : "text-emerald-600")} />
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
           </button>
         )}
       </div>
@@ -95,6 +127,9 @@ const ClusterView: React.FC<ClusterViewProps> = (props) => {
     tags = [],
   } = props || {};
 
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
   const [loading, setLoading] = React.useState(false);
   const [actionFeedback, setActionFeedback] = React.useState<string | null>(null);
 
@@ -113,9 +148,15 @@ const ClusterView: React.FC<ClusterViewProps> = (props) => {
   };
 
   return (
-    <div className="w-full max-w-2xl bg-[#0d1117] border border-gray-700 rounded-lg overflow-hidden text-gray-100">
+    <div className={cn(
+      "w-full max-w-2xl border rounded-lg overflow-hidden",
+      isDark ? "bg-slate-900 border-slate-700 text-slate-100" : "bg-white border-gray-200 text-gray-900"
+    )}>
       {/* Header */}
-      <div className="px-6 py-5 border-b border-gray-700 bg-[#161b22]">
+      <div className={cn(
+        "px-6 py-5 border-b",
+        isDark ? "border-slate-700 bg-slate-800/50" : "border-gray-200 bg-gray-50"
+      )}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-lg bg-purple-600 flex items-center justify-center">
@@ -124,8 +165,8 @@ const ClusterView: React.FC<ClusterViewProps> = (props) => {
             <div>
               <h2 className="text-xl font-semibold">{clusterName}</h2>
               <div className="flex items-center gap-3 mt-1">
-                <StatusBadge status={status} />
-                {clusterId && <span className="text-sm text-gray-400">#{clusterId}</span>}
+                <StatusBadge status={status} isDark={isDark} />
+                {clusterId && <span className={cn("text-sm", isDark ? "text-slate-400" : "text-gray-500")}>#{clusterId}</span>}
               </div>
             </div>
           </div>
@@ -133,7 +174,10 @@ const ClusterView: React.FC<ClusterViewProps> = (props) => {
       </div>
 
       {actionFeedback && (
-        <div className="mx-6 mt-4 px-4 py-2 rounded-md bg-green-500/20 text-green-400 text-sm flex items-center gap-2">
+        <div className={cn(
+          "mx-6 mt-4 px-4 py-2 rounded-md text-sm flex items-center gap-2",
+          isDark ? "bg-emerald-500/20 text-emerald-400" : "bg-emerald-100 text-emerald-700"
+        )}>
           <CheckCircle2 className="w-4 h-4" />
           {actionFeedback}
         </div>
@@ -141,22 +185,34 @@ const ClusterView: React.FC<ClusterViewProps> = (props) => {
 
       {/* Details */}
       <div className="p-6">
-        <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Cluster Details</h3>
-        <div className="bg-[#161b22] rounded-lg px-4">
-          <InfoRow icon={Globe} label="Region" value={region} />
-          <InfoRow icon={Cpu} label="Kubernetes Version" value={version} />
-          <InfoRow icon={Box} label="Node Count" value={String(nodeCount)} />
-          {endpoint && <InfoRow icon={Globe} label="API Endpoint" value={endpoint} copyable />}
-          {createdAt && <InfoRow icon={Calendar} label="Created" value={new Date(createdAt).toLocaleDateString()} />}
+        <h3 className={cn(
+          "text-sm font-medium uppercase tracking-wider mb-3",
+          isDark ? "text-slate-400" : "text-gray-500"
+        )}>Cluster Details</h3>
+        <div className={cn(
+          "rounded-lg px-4",
+          isDark ? "bg-slate-800/50" : "bg-gray-50"
+        )}>
+          <InfoRow icon={Globe} label="Region" value={region} isDark={isDark} />
+          <InfoRow icon={Cpu} label="Kubernetes Version" value={version} isDark={isDark} />
+          <InfoRow icon={Box} label="Node Count" value={String(nodeCount)} isDark={isDark} />
+          {endpoint && <InfoRow icon={Globe} label="API Endpoint" value={endpoint} copyable isDark={isDark} />}
+          {createdAt && <InfoRow icon={Calendar} label="Created" value={new Date(createdAt).toLocaleDateString()} isDark={isDark} />}
           {tags.length > 0 && (
             <div className="flex items-center justify-between py-3">
-              <div className="flex items-center gap-3 text-gray-400">
+              <div className={cn(
+                "flex items-center gap-3",
+                isDark ? "text-slate-400" : "text-gray-500"
+              )}>
                 <Tag className="w-4 h-4" />
                 <span className="text-sm">Tags</span>
               </div>
               <div className="flex gap-1.5 flex-wrap justify-end">
                 {tags.map((tag) => (
-                  <span key={tag} className="px-2 py-0.5 text-xs rounded bg-gray-700 text-gray-300">{tag}</span>
+                  <span key={tag} className={cn(
+                    "px-2 py-0.5 text-xs rounded",
+                    isDark ? "bg-slate-700 text-slate-300" : "bg-gray-200 text-gray-700"
+                  )}>{tag}</span>
                 ))}
               </div>
             </div>
@@ -167,16 +223,30 @@ const ClusterView: React.FC<ClusterViewProps> = (props) => {
       {/* Quick Access */}
       {endpoint && (
         <div className="px-6 pb-6">
-          <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Quick Access</h3>
-          <div className="bg-[#161b22] rounded-lg p-4">
+          <h3 className={cn(
+            "text-sm font-medium uppercase tracking-wider mb-3",
+            isDark ? "text-slate-400" : "text-gray-500"
+          )}>Quick Access</h3>
+          <div className={cn(
+            "rounded-lg p-4",
+            isDark ? "bg-slate-800/50" : "bg-gray-50"
+          )}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">kubectl config</p>
-                <code className="text-xs text-gray-400 font-mono mt-1 block">doctl kubernetes cluster kubeconfig save {clusterName}</code>
+                <code className={cn(
+                  "text-xs font-mono mt-1 block",
+                  isDark ? "text-slate-400" : "text-gray-500"
+                )}>doctl kubernetes cluster kubeconfig save {clusterName}</code>
               </div>
               <button
                 onClick={() => navigator.clipboard.writeText(`doctl kubernetes cluster kubeconfig save ${clusterName}`)}
-                className="p-2 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                className={cn(
+                  "p-2 rounded transition-colors",
+                  isDark 
+                    ? "hover:bg-slate-700 text-slate-400 hover:text-slate-100" 
+                    : "hover:bg-gray-200 text-gray-500 hover:text-gray-900"
+                )}
               >
                 <Copy className="w-4 h-4" />
               </button>
@@ -186,25 +256,43 @@ const ClusterView: React.FC<ClusterViewProps> = (props) => {
       )}
 
       {/* Actions */}
-      <div className="px-6 py-4 border-t border-gray-700 bg-[#161b22] flex items-center justify-between gap-3">
+      <div className={cn(
+        "px-6 py-4 border-t flex items-center justify-between gap-3",
+        isDark ? "border-slate-700 bg-slate-800/50" : "border-gray-200 bg-gray-50"
+      )}>
         <div className="flex items-center gap-2">
           <button
             onClick={() => void handleUpgrade()}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 rounded-md border border-gray-600 hover:bg-gray-700 text-sm font-medium disabled:opacity-50 transition-colors"
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-md border text-sm font-medium disabled:opacity-50 transition-colors",
+              isDark 
+                ? "border-slate-600 hover:bg-slate-700" 
+                : "border-gray-300 hover:bg-gray-200"
+            )}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
             Upgrade
           </button>
           <a
             href="#"
-            className="flex items-center gap-2 px-4 py-2 rounded-md border border-gray-600 hover:bg-gray-700 text-sm font-medium transition-colors"
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-md border text-sm font-medium transition-colors",
+              isDark 
+                ? "border-slate-600 hover:bg-slate-700" 
+                : "border-gray-300 hover:bg-gray-200"
+            )}
           >
             <ExternalLink className="w-4 h-4" />
             Dashboard
           </a>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-md bg-red-600/20 text-red-400 hover:bg-red-600/30 text-sm font-medium transition-colors">
+        <button className={cn(
+          "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors",
+          isDark 
+            ? "bg-rose-500/20 text-rose-400 hover:bg-rose-500/30" 
+            : "bg-rose-100 text-rose-700 hover:bg-rose-200"
+        )}>
           <Trash2 className="w-4 h-4" />
           Destroy
         </button>
