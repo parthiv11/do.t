@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { digitalOceanRequest, DigitalOceanApiError } from "@/lib/digitalocean-api";
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ id: string }> },
 ) {
   try {
@@ -15,7 +15,16 @@ export async function DELETE(
       );
     }
 
-    await digitalOceanRequest<unknown>(`/droplets/${dropletId}`, {
+    // Get token from request header (client-provided) or fallback to env
+    const token = req.headers.get("x-digitalocean-token") ?? process.env.DIGITALOCEAN_TOKEN;
+    if (!token) {
+      return NextResponse.json(
+        { error: "DigitalOcean token required. Provide it via x-digitalocean-token header." },
+        { status: 401 },
+      );
+    }
+
+    await digitalOceanRequest<unknown>(token, `/droplets/${dropletId}`, {
       method: "DELETE",
     });
 
