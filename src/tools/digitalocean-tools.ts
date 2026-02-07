@@ -26,7 +26,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 async function apiFetch<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   // Get token from localStorage (client-side only)
-  const token = typeof window !== "undefined" ? localStorage.getItem("do_token_v1") : null;
+  const token = typeof window !== "undefined" ? localStorage.getItem("do.t_token_v1") : null;
   
   const res = await fetch(input, {
     ...init,
