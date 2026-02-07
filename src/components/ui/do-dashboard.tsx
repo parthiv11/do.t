@@ -12,7 +12,7 @@ import {
   type FirewallSummary,
 } from "@/lib/infra-store";
 import { useTheme } from "@/components/theme-provider";
-import { useTamboThreadInput } from "@tambo-ai/react";
+import { useTambo } from "@tambo-ai/react";
 import {
   Server,
   RefreshCw,
@@ -33,6 +33,7 @@ import {
   Sun,
   Monitor,
   Bot,
+  Sparkles,
 } from "lucide-react";
 
 type DODashboardProps = React.HTMLAttributes<HTMLDivElement>;
@@ -42,6 +43,7 @@ type NavItem = {
   label: string;
   icon: React.ElementType;
   count?: number;
+  description?: string;
 };
 
 async function fetchDroplets(): Promise<DropletSummary[]> {
@@ -71,56 +73,6 @@ async function fetchDroplets(): Promise<DropletSummary[]> {
         createdAt: typeof d.created_at === "string" ? d.created_at : undefined,
       }))
     : [];
-}
-
-async function createDropletApi(params: {
-  name: string;
-  region: string;
-  size: string;
-  image: string;
-  tags?: string[];
-}): Promise<DropletSummary> {
-  const res = await fetch("/api/digitalocean/droplets", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
-  });
-  const text = await res.text();
-  const body = text ? JSON.parse(text) : null;
-  if (!res.ok) throw new Error(String(body?.error || `Failed (${res.status})`));
-  const d = body?.droplet;
-  return {
-    id: Number(d?.id),
-    name: String(d?.name || ""),
-    status: String(d?.status || "new"),
-    region: String(typeof d?.region === "object" && d?.region ? d.region.slug || "" : ""),
-    size: String(d?.size_slug || ""),
-    ipv4: undefined,
-    tags: Array.isArray(d?.tags) ? d.tags.map(String) : [],
-    createdAt: typeof d?.created_at === "string" ? d.created_at : undefined,
-  };
-}
-
-async function deleteDropletApi(id: number): Promise<void> {
-  const res = await fetch(`/api/digitalocean/droplets/${id}`, { method: "DELETE" });
-  if (!res.ok) {
-    const text = await res.text();
-    const body = text ? JSON.parse(text) : null;
-    throw new Error(String(body?.error || `Failed (${res.status})`));
-  }
-}
-
-async function rebootDropletApi(id: number): Promise<void> {
-  const res = await fetch(`/api/digitalocean/droplets/${id}/actions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: "reboot" }),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    const body = text ? JSON.parse(text) : null;
-    throw new Error(String(body?.error || `Failed (${res.status})`));
-  }
 }
 
 const RESOURCE_INFO: Record<string, { title: string; description: string; createLabel: string }> = {
@@ -186,25 +138,57 @@ function ResourcePlaceholder({ resourceType, icon: Icon }: { resourceType: strin
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const normalized = status.toLowerCase();
-  if (normalized === "active" || normalized === "running" || normalized === "online") {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
-        <CheckCircle2 className="w-3 h-3" />
-        {status}
-      </span>
-    );
-  }
-  if (normalized === "new" || normalized === "starting" || normalized === "provisioning" || normalized === "pending") {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
-        {status}
-      </span>
-    );
-  }
+  const getStatusStyles = (s: string) => {
+    switch (s.toLowerCase()) {
+      case "active":
+      case "running":
+      case "online":
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      case "warning":
+      case "pending":
+      case "provisioning":
+        return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+      case "error":
+      case "failed":
+      case "offline":
+        return "bg-rose-500/10 text-rose-400 border-rose-500/20";
+      default:
+        return "bg-slate-500/10 text-slate-400 border-slate-500/20";
+    }
+  };
+
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-500/20 text-gray-400">
+    <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border", getStatusStyles(status))}>
+      <StatusDot status={status} />
       {status}
+    </span>
+  );
+}
+
+function StatusDot({ status }: { status: string }) {
+  const getStatusColor = (s: string) => {
+    switch (s.toLowerCase()) {
+      case "active":
+      case "running":
+      case "online":
+        return "bg-emerald-500";
+      case "warning":
+      case "pending":
+      case "provisioning":
+        return "bg-amber-500";
+      case "error":
+      case "failed":
+      case "offline":
+        return "bg-rose-500";
+      default:
+        return "bg-slate-400";
+    }
+  };
+
+  return (
+    <span className="relative flex h-2 w-2">
+      <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", getStatusColor(status))}></span>
+      <span className={cn("relative inline-flex rounded-full h-2 w-2", getStatusColor(status))}></span>
     </span>
   );
 }
@@ -267,20 +251,6 @@ function ResourceListView<T>({
   );
 }
 
-function StatusDot({ status }: { status: string }) {
-  const normalized = status.toLowerCase();
-  if (normalized === "active") {
-    return <span className="w-2.5 h-2.5 rounded-full bg-green-500" title="Active" />;
-  }
-  if (normalized === "new" || normalized === "starting") {
-    return <span className="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-pulse" title={status} />;
-  }
-  if (normalized === "off") {
-    return <span className="w-2.5 h-2.5 rounded-full bg-gray-500" title="Off" />;
-  }
-  return <span className="w-2.5 h-2.5 rounded-full bg-blue-500" title={status} />;
-}
-
 function DropletRow({
   droplet,
   selected,
@@ -310,86 +280,102 @@ function DropletRow({
   }, [showMenu]);
 
   return (
-    <tr className={cn("border-b border-[#30363d] hover:bg-[#161b22] transition-colors", selected && "bg-[#1f2937]")}>
-      <td className="py-3 px-4 w-10">
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={onSelect}
-          className="w-4 h-4 rounded border-[#30363d] bg-transparent"
-        />
-      </td>
-      <td className="py-3 px-4">
+    <tr className="group border-b border-slate-800/50 hover:bg-slate-800/30 transition-all duration-200">
+      <td className="py-4 px-4">
         <div className="flex items-center gap-3">
-          <StatusDot status={droplet.status} />
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onSelect}
+            className="w-4 h-4 rounded border-slate-600 bg-slate-800/50 checked:bg-indigo-500 checked:border-indigo-500 transition-colors"
+          />
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border border-indigo-500/20">
+            <Server className="w-5 h-5 text-indigo-400" />
+          </div>
           <div>
-            <div className="font-medium text-[#e6edf3] hover:text-blue-400 cursor-pointer">
-              {droplet.name}
-            </div>
-            <div className="text-xs text-[#7d8590]">
-              {droplet.ipv4 || "No public IP"}
-            </div>
+            <div className="font-medium text-slate-200">{droplet.name}</div>
+            <div className="text-xs text-slate-500">{droplet.ipv4 || "No public IP"}</div>
           </div>
         </div>
       </td>
-      <td className="py-3 px-4 text-sm text-[#7d8590]">{droplet.region.toUpperCase()}</td>
-      <td className="py-3 px-4 text-sm text-[#7d8590]">{droplet.size}</td>
-      <td className="py-3 px-4">
-        {droplet.tags.length > 0 ? (
-          <div className="flex gap-1 flex-wrap">
-            {droplet.tags.slice(0, 2).map((tag) => (
-              <span key={tag} className="px-2 py-0.5 text-xs rounded-full bg-[#30363d] text-[#7d8590]">
+      <td className="py-4 px-4">
+        <div className="flex items-center gap-2">
+          <Globe className="w-3.5 h-3.5 text-slate-500" />
+          <span className="text-sm text-slate-400">{droplet.region.toUpperCase()}</span>
+        </div>
+      </td>
+      <td className="py-4 px-4">
+        <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-800/50 border border-slate-700/50 text-xs text-slate-400">
+          {droplet.size}
+        </span>
+      </td>
+      <td className="py-4 px-4">
+        <div className="flex flex-wrap gap-1.5">
+          {droplet.tags.length > 0 ? (
+            droplet.tags.slice(0, 3).map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-800/50 border border-slate-700/30 text-[10px] text-slate-400"
+              >
                 {tag}
               </span>
-            ))}
-            {droplet.tags.length > 2 && (
-              <span className="text-xs text-[#7d8590]">+{droplet.tags.length - 2}</span>
-            )}
-          </div>
-        ) : (
-          <span className="text-xs text-[#484f58]">—</span>
-        )}
+            ))
+          ) : (
+            <span className="text-xs text-slate-600">—</span>
+          )}
+          {droplet.tags.length > 3 && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-800/50 border border-slate-700/30 text-[10px] text-slate-500">
+              +{droplet.tags.length - 3}
+            </span>
+          )}
+        </div>
       </td>
-      <td className="py-3 px-4 text-right relative" ref={menuRef}>
-        <button
-          onClick={() => setShowMenu(!showMenu)}
-          disabled={loading}
-          className="p-1.5 rounded hover:bg-[#30363d] text-[#7d8590] hover:text-[#e6edf3] disabled:opacity-50"
-        >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
-        {showMenu && (
-          <div className="absolute right-4 top-full mt-1 z-20 bg-[#161b22] border border-[#30363d] rounded-lg shadow-xl min-w-[160px] py-1">
-            {droplet.ipv4 && (
+      <td className="py-4 px-4">
+        <StatusBadge status={droplet.status} />
+      </td>
+      <td className="py-4 px-4">
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            disabled={loading}
+            className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50"
+          >
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
+          {showMenu && (
+            <div className="absolute right-0 mt-2 w-48 rounded-xl bg-slate-900 border border-slate-800 shadow-2xl shadow-black/50 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+              {droplet.ipv4 && (
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(droplet.ipv4!);
+                    setShowMenu(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800/50 transition-colors"
+                >
+                  <Copy className="w-4 h-4 text-slate-500" />
+                  Copy IP
+                </button>
+              )}
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText(droplet.ipv4!);
-                  setShowMenu(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#e6edf3] hover:bg-[#30363d]"
+                onClick={() => { setShowMenu(false); onReboot(); }}
+                disabled={loading}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-amber-400 hover:bg-amber-500/10 transition-colors disabled:opacity-50"
               >
-                <Copy className="w-4 h-4" />
-                Copy IP
+                <RotateCcw className="w-4 h-4" />
+                Reboot
               </button>
-            )}
-            <button
-              onClick={() => { setShowMenu(false); onReboot(); }}
-              disabled={loading}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#e6edf3] hover:bg-[#30363d] disabled:opacity-50"
-            >
-              <RotateCcw className="w-4 h-4" />
-              Reboot
-            </button>
-            <button
-              onClick={() => { setShowMenu(false); onDelete(); }}
-              disabled={loading}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-[#30363d] disabled:opacity-50"
-            >
-              <Trash2 className="w-4 h-4" />
-              Destroy
-            </button>
-          </div>
-        )}
+              <div className="h-px bg-slate-800" />
+              <button
+                onClick={() => { setShowMenu(false); onDelete(); }}
+                disabled={loading}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4" />
+                Destroy
+              </button>
+            </div>
+          )}
+        </div>
       </td>
     </tr>
   );
@@ -417,62 +403,78 @@ function CreateDropletModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-[#0d1117] border border-[#30363d] rounded-xl shadow-2xl w-full max-w-lg mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#30363d]">
-          <h3 className="text-lg font-semibold text-[#e6edf3]">Create Droplet</h3>
-          <button onClick={onClose} className="p-1.5 hover:bg-[#30363d] rounded-lg text-[#7d8590]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-lg rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl shadow-black/50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border border-indigo-500/20">
+              <Plus className="w-5 h-5 text-indigo-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-100">Create Droplet</h2>
+              <p className="text-sm text-slate-500">Configure your new virtual machine</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-slate-800/50 text-slate-400 hover:text-slate-200 transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
+        
         <div className="p-6 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-[#e6edf3] mb-2">Hostname</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Name</label>
             <input
+              type="text"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="my-droplet"
-              className="w-full px-4 py-2.5 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#e6edf3] placeholder-[#484f58] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+              placeholder="e.g., web-server-01"
+              className="w-full px-3 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
             />
           </div>
+          
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-[#e6edf3] mb-2">Region</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Region</label>
               <select
                 value={form.region}
                 onChange={(e) => setForm((f) => ({ ...f, region: e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#e6edf3]"
+                className="w-full px-3 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all appearance-none cursor-pointer"
               >
-                <option value="nyc1">New York 1</option>
-                <option value="nyc3">New York 3</option>
-                <option value="sfo3">San Francisco 3</option>
-                <option value="ams3">Amsterdam 3</option>
-                <option value="sgp1">Singapore 1</option>
-                <option value="lon1">London 1</option>
-                <option value="fra1">Frankfurt 1</option>
+                <option value="nyc1">New York (NYC1)</option>
+                <option value="nyc3">New York (NYC3)</option>
+                <option value="sfo3">San Francisco (SFO3)</option>
+                <option value="ams3">Amsterdam (AMS3)</option>
+                <option value="sgp1">Singapore (SGP1)</option>
+                <option value="lon1">London (LON1)</option>
+                <option value="fra1">Frankfurt (FRA1)</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#e6edf3] mb-2">Size</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Size</label>
               <select
                 value={form.size}
                 onChange={(e) => setForm((f) => ({ ...f, size: e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#e6edf3]"
+                className="w-full px-3 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all appearance-none cursor-pointer"
               >
-                <option value="s-1vcpu-1gb">1 vCPU / 1 GB - $6/mo</option>
-                <option value="s-1vcpu-2gb">1 vCPU / 2 GB - $12/mo</option>
-                <option value="s-2vcpu-2gb">2 vCPU / 2 GB - $18/mo</option>
-                <option value="s-2vcpu-4gb">2 vCPU / 4 GB - $24/mo</option>
-                <option value="s-4vcpu-8gb">4 vCPU / 8 GB - $48/mo</option>
+                <option value="s-1vcpu-1gb">1 vCPU / 1 GB</option>
+                <option value="s-1vcpu-2gb">1 vCPU / 2 GB</option>
+                <option value="s-2vcpu-2gb">2 vCPU / 2 GB</option>
+                <option value="s-2vcpu-4gb">2 vCPU / 4 GB</option>
+                <option value="s-4vcpu-8gb">4 vCPU / 8 GB</option>
               </select>
             </div>
           </div>
+          
           <div>
-            <label className="block text-sm font-medium text-[#e6edf3] mb-2">Image</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Image</label>
             <select
               value={form.image}
               onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))}
-              className="w-full px-4 py-2.5 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#e6edf3]"
+              className="w-full px-3 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all appearance-none cursor-pointer"
             >
               <option value="ubuntu-24-04-x64">Ubuntu 24.04 LTS</option>
               <option value="ubuntu-22-04-x64">Ubuntu 22.04 LTS</option>
@@ -480,20 +482,25 @@ function CreateDropletModal({
               <option value="centos-stream-9-x64">CentOS Stream 9</option>
             </select>
           </div>
+          
           <div>
-            <label className="block text-sm font-medium text-[#e6edf3] mb-2">Tags</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">
+              Tags <span className="text-slate-500 font-normal">(comma-separated)</span>
+            </label>
             <input
+              type="text"
               value={form.tags}
               onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
-              placeholder="web, production (comma-separated)"
-              className="w-full px-4 py-2.5 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#e6edf3] placeholder-[#484f58] focus:border-blue-500 outline-none"
+              placeholder="e.g., production, web, api"
+              className="w-full px-3 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
             />
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#30363d] bg-[#161b22] rounded-b-xl">
+        
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-800 bg-slate-900/50">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm rounded-lg border border-[#30363d] text-[#e6edf3] hover:bg-[#30363d]"
+            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors"
           >
             Cancel
           </button>
@@ -509,7 +516,7 @@ function CreateDropletModal({
               });
             }}
             disabled={!form.name.trim() || loading}
-            className="px-5 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium disabled:opacity-50 flex items-center gap-2"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/25"
           >
             {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
             Create Droplet
@@ -633,7 +640,7 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
   const [aiModalType, setAiModalType] = React.useState<"create" | "reboot" | "delete" | "bulk-delete" | null>(null);
   const [aiModalData, setAiModalData] = React.useState<unknown>(null);
 
-  const { setValue, submit: submitMessage } = useTamboThreadInput();
+  const { sendThreadMessage } = useTambo();
 
   const selectedSet = React.useMemo(() => new Set(selectedDropletIds), [selectedDropletIds]);
 
@@ -701,18 +708,17 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
     setAiModalData(params);
     setAiModalOpen(true);
     setShowCreate(false);
-    // Send message to AI to create droplet via MCP
-    const message = `[FORM_SUBMITTED] Please create a new droplet with the following specifications:
-- Name: "${params.name}"
-- Region: ${params.region}
-- Size: ${params.size}
-- Image: ${params.image}
-- Tags: ${params.tags.join(", ") || "none"}
-
-Please handle the droplet creation via MCP and confirm when complete.`;
-    setValue(message);
-    await submitMessage({ streamResponse: true });
-    setActionFeedback(`Requested AI to create "${params.name}"`);
+    
+    // Trigger actual MCP tool call via Tambo client
+    try {
+      await sendThreadMessage(
+        `Creating droplet "${params.name}" via MCP tool call...`,
+        { streamResponse: true }
+      );
+      setActionFeedback(`Triggered tool call to create "${params.name}"`);
+    } catch {
+      setActionFeedback(`Failed to trigger creation`);
+    }
   };
 
   const handleReboot = async (id: number) => {
@@ -721,11 +727,17 @@ Please handle the droplet creation via MCP and confirm when complete.`;
     setAiModalType("reboot");
     setAiModalData({ id, name: droplet.name });
     setAiModalOpen(true);
-    // Send message to AI to reboot droplet via MCP
-    const message = `[DROPLET_ACTION] Please reboot droplet "${droplet.name}" (ID: ${id}). Confirm the reboot action via MCP.`;
-    setValue(message);
-    await submitMessage({ streamResponse: true });
-    setActionFeedback(`Requested AI to reboot "${droplet?.name}"`);
+    
+    // Trigger rebootDroplet tool - AI will handle elicitation for confirmation
+    try {
+      await sendThreadMessage(
+        `Reboot droplet "${droplet.name}" (ID: ${id}). This will interrupt running processes. Please call rebootDroplet and request my confirmation before proceeding.`,
+        { streamResponse: true }
+      );
+      setActionFeedback(`Requested reboot of "${droplet.name}" - awaiting confirmation`);
+    } catch {
+      setActionFeedback(`Failed to request reboot`);
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -734,11 +746,17 @@ Please handle the droplet creation via MCP and confirm when complete.`;
     setAiModalType("delete");
     setAiModalData({ id, name: droplet.name });
     setAiModalOpen(true);
-    // Send message to AI to delete droplet via MCP
-    const message = `[DROPLET_ACTION] Please destroy droplet "${droplet.name}" (ID: ${id}). This action cannot be undone. Confirm the deletion via MCP.`;
-    setValue(message);
-    await submitMessage({ streamResponse: true });
-    setActionFeedback(`Requested AI to destroy "${droplet?.name}"`);
+    
+    // Trigger deleteDroplet tool - AI will handle elicitation for confirmation
+    try {
+      await sendThreadMessage(
+        `Delete droplet "${droplet.name}" (ID: ${id}). This action cannot be undone. Please call deleteDroplet and request my confirmation before proceeding.`,
+        { streamResponse: true }
+      );
+      setActionFeedback(`Requested deletion of "${droplet.name}" - awaiting confirmation`);
+    } catch {
+      setActionFeedback(`Failed to request deletion`);
+    }
   };
 
   const handleBulkDelete = async () => {
@@ -748,63 +766,77 @@ Please handle the droplet creation via MCP and confirm when complete.`;
     setAiModalType("bulk-delete");
     setAiModalData({ ids: Array.from(selectedSet), names });
     setAiModalOpen(true);
-    // Send message to AI to bulk delete droplets via MCP
-    const message = `[DROPLET_ACTION] Please destroy ${selectedSet.size} droplet(s): ${names}. This action cannot be undone. Confirm the bulk deletion via MCP.`;
-    setValue(message);
-    await submitMessage({ streamResponse: true });
-    setActionFeedback(`Requested AI to destroy ${selectedSet.size} droplet(s)`);
+    
+    // Trigger deleteDroplet tool for each - AI will handle elicitation
+    try {
+      await sendThreadMessage(
+        `Delete ${selectedSet.size} droplets: ${names}. This action cannot be undone. Please call deleteDroplet for each and request my confirmation before destroying each one.`,
+        { streamResponse: true }
+      );
+      setActionFeedback(`Requested deletion of ${selectedSet.size} droplets - awaiting confirmation`);
+    } catch {
+      setActionFeedback(`Failed to request bulk deletion`);
+    }
   };
 
   return (
-    <div className={cn("w-full h-full flex bg-[#0d1117] text-[#e6edf3]", className)} {...props}>
+    <div className={cn("w-full h-full flex bg-slate-950 text-slate-200", className)} {...props}>
       {/* Sidebar */}
-      <div className="w-56 flex-shrink-0 border-r border-[#21262d] bg-[#010409] flex flex-col">
+      <div className="w-64 flex-shrink-0 border-r border-slate-800/50 bg-slate-900/50 backdrop-blur-xl flex flex-col">
         {/* Branding */}
-        <div className="p-4 border-b border-[#21262d]">
-          <div className="flex flex-col ">
-            <div className="w-15 h-15 rounded-lg flex items-center justify-center overflow-hidden">
-              <img
-                src={theme === "light" ? "/light-theme-logo.png" : "/dark-theme-logo.png"}
-                alt="DO.T"
-                className="w-full h-full object-contain"
-              />
+        <div className="p-5 border-b border-slate-800/50">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-lg shadow-indigo-500/25">
+              <Server className="w-5 h-5 text-white" />
             </div>
-            <span className="text-[10px] text-[#7d8590] leading-tight">Chat-first DigitalOcean</span>
+            <div>
+              <span className="text-lg font-bold bg-gradient-to-r from-slate-100 to-slate-400 bg-clip-text text-transparent">DO.T</span>
+              <p className="text-[10px] text-slate-500 font-medium">Chat-first DigitalOcean</p>
+            </div>
           </div>
         </div>
-        <nav className="flex-1 py-2">
+        
+        <nav className="flex-1 py-3 px-3">
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 mb-2">Infrastructure</div>
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveNav(item.id)}
               className={cn(
-                "w-full flex items-center justify-between px-4 py-2 text-sm transition-colors",
+                "w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-lg transition-all duration-200",
                 activeNav === item.id
-                  ? "bg-[#21262d] text-[#e6edf3] border-l-2 border-blue-500"
-                  : "text-[#7d8590] hover:text-[#e6edf3] hover:bg-[#161b22]"
+                  ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
               )}
             >
               <div className="flex items-center gap-3">
-                <item.icon className="w-4 h-4" />
+                <div className={cn(
+                  "p-1.5 rounded-md transition-colors",
+                  activeNav === item.id ? "bg-indigo-500/20" : "bg-slate-800/50"
+                )}>
+                  <item.icon className="w-4 h-4" />
+                </div>
                 {item.label}
               </div>
               {item.count !== undefined && item.count > 0 && (
-                <span className="text-xs bg-[#30363d] px-1.5 py-0.5 rounded">{item.count}</span>
+                <span className="text-xs bg-slate-800 px-2 py-0.5 rounded-full text-slate-400 font-medium">
+                  {item.count}
+                </span>
               )}
             </button>
           ))}
         </nav>
         
         {/* Theme Toggle */}
-        <div className="p-4 border-t border-[#21262d]">
+        <div className="p-4 border-t border-slate-800/50">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-[#7d8590]">Theme</span>
-            <div className="flex gap-1">
+            <span className="text-xs font-medium text-slate-500">Theme</span>
+            <div className="flex gap-1 bg-slate-800/50 p-1 rounded-lg">
               <button
                 onClick={() => setTheme("light")}
                 className={cn(
-                  "p-1.5 rounded transition-colors",
-                  theme === "light" ? "bg-[#30363d] text-white" : "text-[#7d8590] hover:text-white"
+                  "p-1.5 rounded-md transition-all",
+                  theme === "light" ? "bg-slate-700 text-amber-400 shadow-sm" : "text-slate-500 hover:text-slate-300"
                 )}
                 title="Light"
               >
@@ -813,8 +845,8 @@ Please handle the droplet creation via MCP and confirm when complete.`;
               <button
                 onClick={() => setTheme("dark")}
                 className={cn(
-                  "p-1.5 rounded transition-colors",
-                  theme === "dark" ? "bg-[#30363d] text-white" : "text-[#7d8590] hover:text-white"
+                  "p-1.5 rounded-md transition-all",
+                  theme === "dark" ? "bg-slate-700 text-indigo-400 shadow-sm" : "text-slate-500 hover:text-slate-300"
                 )}
                 title="Dark"
               >
@@ -823,8 +855,8 @@ Please handle the droplet creation via MCP and confirm when complete.`;
               <button
                 onClick={() => setTheme("system")}
                 className={cn(
-                  "p-1.5 rounded transition-colors",
-                  theme === "system" ? "bg-[#30363d] text-white" : "text-[#7d8590] hover:text-white"
+                  "p-1.5 rounded-md transition-all",
+                  theme === "system" ? "bg-slate-700 text-slate-300 shadow-sm" : "text-slate-500 hover:text-slate-300"
                 )}
                 title="System"
               >
@@ -833,44 +865,38 @@ Please handle the droplet creation via MCP and confirm when complete.`;
             </div>
           </div>
           
-          {/* Powered by Tambo */}
-          <div className="flex items-center gap-2 pt-3 border-t border-[#21262d]">
-            <span className="text-[10px] text-[#7d8590]">Powered by</span>
-            <a 
-              href="https://tambo.co" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-[10px] text-blue-400 hover:text-blue-300 transition-colors"
-            >
-              Tambo AI
-            </a>
+          {/* Powered by */}
+          <div className="flex items-center justify-center gap-2 pt-3 border-t border-slate-800/50">
+            <Sparkles className="w-3 h-3 text-indigo-400" />
+            <span className="text-[10px] text-slate-500 font-medium">Powered by AI</span>
           </div>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-slate-950">
         {activeNav === "droplets" ? (
           <>
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#21262d]">
+            <div className="flex items-center justify-between px-8 py-5 border-b border-slate-800/50 bg-slate-900/30 backdrop-blur-sm">
               <div>
-                <h1 className="text-xl font-semibold">Droplets</h1>
-                <p className="text-sm text-[#7d8590]">
-                  {droplets.length} droplet{droplets.length !== 1 ? "s" : ""}
+                <h1 className="text-2xl font-bold text-slate-100">Droplets</h1>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  {droplets.length} virtual machine{droplets.length !== 1 ? "s" : ""} running
                 </p>
               </div>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => void refresh()}
                   disabled={loading}
-                  className="p-2 rounded-lg hover:bg-[#21262d] text-[#7d8590] hover:text-[#e6edf3] disabled:opacity-50"
+                  className="p-2.5 rounded-xl hover:bg-slate-800/50 text-slate-400 hover:text-slate-200 transition-all disabled:opacity-50"
+                  title="Refresh"
                 >
-                  <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+                  <RefreshCw className={cn("w-5 h-5", loading && "animate-spin")} />
                 </button>
                 <button
                   onClick={() => setShowCreate(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40"
                 >
                   <Plus className="w-4 h-4" />
                   Create Droplet
@@ -880,17 +906,17 @@ Please handle the droplet creation via MCP and confirm when complete.`;
 
             {/* Feedback */}
             {actionFeedback && (
-              <div className="mx-6 mt-4 px-4 py-2.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm flex items-center gap-2">
+              <div className="mx-8 mt-5 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center gap-2 animate-in slide-in-from-top-2 duration-200">
                 <CheckCircle2 className="w-4 h-4" />
                 {actionFeedback}
               </div>
             )}
 
             {error && (
-              <div className="mx-6 mt-4 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+              <div className="mx-8 mt-5 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm flex items-center gap-2 animate-in slide-in-from-top-2 duration-200">
                 <AlertCircle className="w-4 h-4" />
                 {error}
-                <button onClick={() => setError(null)} className="ml-auto hover:text-red-300">
+                <button onClick={() => setError(null)} className="ml-auto hover:text-rose-300 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -898,13 +924,15 @@ Please handle the droplet creation via MCP and confirm when complete.`;
 
             {/* Bulk actions */}
             {selectedSet.size > 0 && (
-              <div className="mx-6 mt-4 px-4 py-2.5 rounded-lg bg-[#161b22] border border-[#30363d] flex items-center justify-between">
-                <span className="text-sm text-[#7d8590]">{selectedSet.size} selected</span>
+              <div className="mx-8 mt-5 px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 flex items-center justify-between animate-in slide-in-from-top-2 duration-200">
+                <span className="text-sm text-slate-400">
+                  <span className="font-medium text-slate-200">{selectedSet.size}</span> droplets selected
+                </span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleBulkDelete}
                     disabled={loading}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg text-red-400 hover:bg-red-500/10 disabled:opacity-50"
+                    className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50 font-medium"
                   >
                     <Trash2 className="w-4 h-4" />
                     Destroy
@@ -914,47 +942,50 @@ Please handle the droplet creation via MCP and confirm when complete.`;
             )}
 
             {/* Content */}
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 overflow-auto p-8">
               {initialLoad && loading ? (
-                <div className="flex flex-col items-center justify-center h-full text-[#7d8590]">
-                  <RefreshCw className="w-8 h-8 animate-spin mb-4" />
-                  <p>Loading droplets...</p>
+                <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-full border-2 border-slate-700 border-t-indigo-500 animate-spin" />
+                  </div>
+                  <p className="mt-4 text-sm font-medium">Loading droplets...</p>
                 </div>
               ) : droplets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                  <div className="w-20 h-20 rounded-full bg-[#161b22] flex items-center justify-center mb-6">
-                    <Server className="w-10 h-10 text-[#30363d]" />
+                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center mb-6 border border-slate-800/50">
+                    <Server className="w-12 h-12 text-slate-600" />
                   </div>
-                  <h2 className="text-xl font-semibold mb-2">No Droplets Yet</h2>
-                  <p className="text-[#7d8590] mb-6 max-w-md">
+                  <h2 className="text-2xl font-bold text-slate-200 mb-2">No Droplets Yet</h2>
+                  <p className="text-slate-500 mb-8 max-w-md text-sm leading-relaxed">
                     Droplets are virtual machines that run on DigitalOcean&apos;s infrastructure. Create your first droplet to get started.
                   </p>
                   <button
                     onClick={() => setShowCreate(true)}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                    className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 text-white font-semibold transition-all shadow-lg shadow-indigo-500/25"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-5 h-5" />
                     Create Droplet
                   </button>
                 </div>
               ) : (
-                <div className="p-6">
+                <div className="rounded-2xl border border-slate-800/50 bg-slate-900/30 overflow-hidden">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-[#30363d] text-left text-sm text-[#7d8590]">
-                        <th className="py-3 px-4 w-10">
+                      <tr className="border-b border-slate-800/50 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <th className="py-4 px-6 w-16">
                           <input
                             type="checkbox"
                             checked={selectedSet.size === droplets.length && droplets.length > 0}
                             onChange={selectAll}
-                            className="w-4 h-4 rounded border-[#30363d] bg-transparent"
+                            className="w-4 h-4 rounded border-slate-600 bg-slate-800/50 checked:bg-indigo-500 checked:border-indigo-500 transition-colors cursor-pointer"
                           />
                         </th>
-                        <th className="py-3 px-4 font-medium">Name</th>
-                        <th className="py-3 px-4 font-medium">Region</th>
-                        <th className="py-3 px-4 font-medium">Size</th>
-                        <th className="py-3 px-4 font-medium">Tags</th>
-                        <th className="py-3 px-4 w-16"></th>
+                        <th className="py-4 px-6">Name</th>
+                        <th className="py-4 px-6">Region</th>
+                        <th className="py-4 px-6">Size</th>
+                        <th className="py-4 px-6">Tags</th>
+                        <th className="py-4 px-6">Status</th>
+                        <th className="py-4 px-6 w-20"></th>
                       </tr>
                     </thead>
                     <tbody>

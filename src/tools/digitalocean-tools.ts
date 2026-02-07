@@ -99,7 +99,16 @@ const listDroplets = async (): Promise<ApiResult<{ droplets: DropletSummary[] }>
 
 const rebootDroplet = async (params: {
   id: number;
+  confirmed?: boolean;
 }): Promise<ApiResult<{ id: number }>> => {
+  // If not confirmed, return error to trigger elicitation
+  if (!params.confirmed) {
+    return {
+      success: false,
+      error: "Confirmation required. Please confirm reboot of droplet.",
+    };
+  }
+
   try {
     await apiFetch<unknown>(`/api/digitalocean/droplets/${params.id}/actions`, {
       method: "POST",
@@ -153,7 +162,16 @@ const createDroplet = async (params: {
 
 const deleteDroplet = async (params: {
   id: number;
+  confirmed?: boolean;
 }): Promise<ApiResult<{ id: number }>> => {
+  // If not confirmed, return error to trigger elicitation
+  if (!params.confirmed) {
+    return {
+      success: false,
+      error: "Confirmation required. Please confirm deletion of droplet.",
+    };
+  }
+
   try {
     await apiFetch<unknown>(`/api/digitalocean/droplets/${params.id}`, {
       method: "DELETE",
@@ -269,13 +287,14 @@ export const createDropletTool = {
 export const deleteDropletTool = {
   name: "deleteDroplet",
   description:
-    "Delete a DigitalOcean droplet by id. Always listDroplets first to confirm the id.",
+    "Delete a DigitalOcean droplet by id. This action cannot be undone. Always confirm with the user before deleting - use elicitation to request explicit confirmation with the droplet name.",
   tool: deleteDroplet,
   toolSchema: z
     .function()
     .args(
       z.object({
         id: z.number().describe("Droplet id"),
+        confirmed: z.boolean().optional().describe("User confirmation flag - must be true to proceed with deletion"),
       }),
     )
     .returns(
@@ -298,13 +317,14 @@ export const deleteDropletTool = {
 export const rebootDropletTool = {
   name: "rebootDroplet",
   description:
-    "Reboot a DigitalOcean droplet by id. This triggers a reboot action and returns immediately.",
+    "Reboot a DigitalOcean droplet by id. This will interrupt any running processes on the droplet. Always confirm with the user before rebooting - use elicitation to request confirmation.",
   tool: rebootDroplet,
   toolSchema: z
     .function()
     .args(
       z.object({
         id: z.number().describe("Droplet id"),
+        confirmed: z.boolean().optional().describe("User confirmation flag - must be true to proceed with reboot"),
       }),
     )
     .returns(
