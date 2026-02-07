@@ -273,6 +273,9 @@ function ResourceListView<T>({
   columns: string[];
   renderRow: (item: T) => React.ReactNode;
 }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
   if (items.length === 0) {
     return (
       <ResourcePlaceholder
@@ -284,10 +287,13 @@ function ResourceListView<T>({
 
   return (
     <>
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#21262d]">
+      <div className={cn(
+        "flex items-center justify-between px-6 py-4 border-b",
+        isDark ? "border-slate-800/50" : "border-gray-200"
+      )}>
         <div>
-          <h1 className="text-xl font-semibold">{title}</h1>
-          <p className="text-sm text-[#7d8590]">
+          <h1 className={cn("text-xl font-semibold", isDark ? "text-slate-100" : "text-gray-900")}>{title}</h1>
+          <p className={cn("text-sm", isDark ? "text-slate-500" : "text-gray-500")}>
             {items.length} resource{items.length !== 1 ? "s" : ""}
           </p>
         </div>
@@ -300,7 +306,10 @@ function ResourceListView<T>({
         <div className="p-6">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#30363d] text-left text-sm text-[#7d8590]">
+              <tr className={cn(
+                "border-b text-left text-sm",
+                isDark ? "border-slate-800/50 text-slate-500" : "border-gray-200 text-gray-500"
+              )}>
                 {columns.map((col) => (
                   <th key={col} className="py-3 px-4 font-medium">{col}</th>
                 ))}
@@ -333,6 +342,8 @@ function DropletRow({
 }) {
   const [showMenu, setShowMenu] = React.useState(false);
   const menuRef = React.useRef<HTMLTableCellElement>(null);
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
 
   React.useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -345,32 +356,50 @@ function DropletRow({
   }, [showMenu]);
 
   return (
-    <tr className="group border-b border-slate-800/50 hover:bg-slate-800/30 transition-all duration-200">
+    <tr className={cn(
+      "group border-b transition-all duration-200",
+      isDark ? "border-slate-800/50 hover:bg-slate-800/30" : "border-gray-200 hover:bg-gray-50"
+    )}>
       <td className="py-4 px-4">
         <div className="flex items-center gap-3">
           <input
             type="checkbox"
             checked={selected}
             onChange={onSelect}
-            className="w-4 h-4 rounded border-slate-600 bg-slate-800/50 checked:bg-indigo-500 checked:border-indigo-500 transition-colors"
+            className={cn(
+              "w-4 h-4 rounded transition-colors",
+              isDark 
+                ? "border-slate-600 bg-slate-800/50 checked:bg-indigo-500 checked:border-indigo-500" 
+                : "border-gray-300 bg-gray-50 checked:bg-indigo-500 checked:border-indigo-500"
+            )}
           />
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border border-indigo-500/20">
-            <Server className="w-5 h-5 text-indigo-400" />
+          <div className={cn(
+            "flex h-10 w-10 items-center justify-center rounded-lg border",
+            isDark 
+              ? "bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border-indigo-500/20" 
+              : "bg-gradient-to-br from-indigo-100 to-violet-100 border-indigo-200"
+          )}>
+            <Server className={cn("w-5 h-5", isDark ? "text-indigo-400" : "text-indigo-600")} />
           </div>
           <div>
-            <div className="font-medium text-slate-200">{droplet.name}</div>
-            <div className="text-xs text-slate-500">{droplet.ipv4 || "No public IP"}</div>
+            <div className={cn("font-medium", isDark ? "text-slate-200" : "text-gray-900")}>{droplet.name}</div>
+            <div className={cn("text-xs", isDark ? "text-slate-500" : "text-gray-500")}>{droplet.ipv4 || "No public IP"}</div>
           </div>
         </div>
       </td>
       <td className="py-4 px-4">
         <div className="flex items-center gap-2">
-          <Globe className="w-3.5 h-3.5 text-slate-500" />
-          <span className="text-sm text-slate-400">{droplet.region.toUpperCase()}</span>
+          <Globe className={cn("w-3.5 h-3.5", isDark ? "text-slate-500" : "text-gray-400")} />
+          <span className={cn("text-sm", isDark ? "text-slate-400" : "text-gray-600")}>{droplet.region.toUpperCase()}</span>
         </div>
       </td>
       <td className="py-4 px-4">
-        <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-800/50 border border-slate-700/50 text-xs text-slate-400">
+        <span className={cn(
+          "inline-flex items-center px-2.5 py-1 rounded-md text-xs",
+          isDark 
+            ? "bg-slate-800/50 border border-slate-700/50 text-slate-400" 
+            : "bg-gray-100 border border-gray-200 text-gray-600"
+        )}>
           {droplet.size}
         </span>
       </td>
@@ -380,16 +409,26 @@ function DropletRow({
             droplet.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-800/50 border border-slate-700/30 text-[10px] text-slate-400"
+                className={cn(
+                  "inline-flex items-center px-2 py-0.5 rounded-md text-[10px]",
+                  isDark 
+                    ? "bg-slate-800/50 border border-slate-700/30 text-slate-400" 
+                    : "bg-gray-100 border border-gray-200 text-gray-600"
+                )}
               >
                 {tag}
               </span>
             ))
           ) : (
-            <span className="text-xs text-slate-600">—</span>
+            <span className={cn("text-xs", isDark ? "text-slate-600" : "text-gray-400")}>—</span>
           )}
           {droplet.tags.length > 3 && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-800/50 border border-slate-700/30 text-[10px] text-slate-500">
+            <span className={cn(
+              "inline-flex items-center px-2 py-0.5 rounded-md text-[10px]",
+              isDark 
+                ? "bg-slate-800/50 border border-slate-700/30 text-slate-500" 
+                : "bg-gray-100 border border-gray-200 text-gray-500"
+            )}>
               +{droplet.tags.length - 3}
             </span>
           )}
@@ -403,37 +442,62 @@ function DropletRow({
           <button
             onClick={() => setShowMenu(!showMenu)}
             disabled={loading}
-            className="p-2 rounded-lg hover:bg-slate-700/50 text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50"
+            className={cn(
+              "p-2 rounded-lg transition-colors disabled:opacity-50",
+              isDark 
+                ? "hover:bg-slate-700/50 text-slate-400 hover:text-slate-200" 
+                : "hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+            )}
           >
             <MoreHorizontal className="w-4 h-4" />
           </button>
           {showMenu && (
-            <div className="absolute right-0 mt-2 w-48 rounded-xl bg-slate-900 border border-slate-800 shadow-2xl shadow-black/50 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className={cn(
+              "absolute right-0 mt-2 w-48 rounded-xl border shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150",
+              isDark 
+                ? "bg-slate-900 border-slate-800 shadow-black/50" 
+                : "bg-white border-gray-200 shadow-gray-200/50"
+            )}>
               {droplet.ipv4 && (
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(droplet.ipv4!);
                     setShowMenu(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800/50 transition-colors"
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors",
+                    isDark 
+                      ? "text-slate-300 hover:bg-slate-800/50" 
+                      : "text-gray-700 hover:bg-gray-50"
+                  )}
                 >
-                  <Copy className="w-4 h-4 text-slate-500" />
+                  <Copy className={cn("w-4 h-4", isDark ? "text-slate-500" : "text-gray-400")} />
                   Copy IP
                 </button>
               )}
               <button
                 onClick={() => { setShowMenu(false); onReboot(); }}
                 disabled={loading}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-amber-400 hover:bg-amber-500/10 transition-colors disabled:opacity-50"
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors disabled:opacity-50",
+                  isDark 
+                    ? "text-amber-400 hover:bg-amber-500/10" 
+                    : "text-amber-600 hover:bg-amber-50"
+                )}
               >
                 <RotateCcw className="w-4 h-4" />
                 Reboot
               </button>
-              <div className="h-px bg-slate-800" />
+              <div className={cn("h-px", isDark ? "bg-slate-800" : "bg-gray-200")} />
               <button
                 onClick={() => { setShowMenu(false); onDelete(); }}
                 disabled={loading}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors disabled:opacity-50",
+                  isDark 
+                    ? "text-rose-400 hover:bg-rose-500/10" 
+                    : "text-rose-600 hover:bg-rose-50"
+                )}
               >
                 <Trash2 className="w-4 h-4" />
                 Destroy
@@ -464,26 +528,41 @@ function CreateDropletModal({
     image: "ubuntu-24-04-x64",
     tags: "",
   });
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl shadow-black/50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+      <div className={cn("absolute inset-0 backdrop-blur-sm", isDark ? "bg-slate-950/80" : "bg-gray-900/50")} onClick={onClose} />
+      <div className={cn(
+        "relative w-full max-w-lg rounded-2xl border shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200",
+        isDark 
+          ? "bg-slate-900 border-slate-800 shadow-black/50" 
+          : "bg-white border-gray-200 shadow-gray-200/50"
+      )}>
+        <div className={cn("flex items-center justify-between px-6 py-4 border-b", isDark ? "border-slate-800" : "border-gray-200")}>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border border-indigo-500/20">
-              <Plus className="w-5 h-5 text-indigo-400" />
+            <div className={cn(
+              "flex h-10 w-10 items-center justify-center rounded-xl border",
+              isDark 
+                ? "bg-gradient-to-br from-indigo-500/20 to-violet-500/20 border-indigo-500/20" 
+                : "bg-gradient-to-br from-indigo-100 to-violet-100 border-indigo-200"
+            )}>
+              <Plus className={cn("w-5 h-5", isDark ? "text-indigo-400" : "text-indigo-600")} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-100">Create Droplet</h2>
-              <p className="text-sm text-slate-500">Configure your new virtual machine</p>
+              <h2 className={cn("text-lg font-semibold", isDark ? "text-slate-100" : "text-gray-900")}>Create Droplet</h2>
+              <p className={cn("text-sm", isDark ? "text-slate-500" : "text-gray-500")}>Configure your new virtual machine</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-slate-800/50 text-slate-400 hover:text-slate-200 transition-colors"
+            className={cn(
+              "p-2 rounded-lg transition-colors",
+              isDark ? "hover:bg-slate-800/50 text-slate-400 hover:text-slate-200" : "hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+            )}
           >
             <X className="w-5 h-5" />
           </button>
@@ -491,23 +570,33 @@ function CreateDropletModal({
         
         <div className="p-6 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Name</label>
+            <label className={cn("block text-sm font-medium mb-1.5", isDark ? "text-slate-300" : "text-gray-700")}>Name</label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="e.g., web-server-01"
-              className="w-full px-3 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+              className={cn(
+                "w-full px-3 py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all",
+                isDark 
+                  ? "bg-slate-800/50 border-slate-700/50 text-slate-200 placeholder:text-slate-600" 
+                  : "bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400"
+              )}
             />
           </div>
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Region</label>
+              <label className={cn("block text-sm font-medium mb-1.5", isDark ? "text-slate-300" : "text-gray-700")}>Region</label>
               <select
                 value={form.region}
                 onChange={(e) => setForm((f) => ({ ...f, region: e.target.value }))}
-                className="w-full px-3 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all appearance-none cursor-pointer"
+                className={cn(
+                  "w-full px-3 py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all appearance-none cursor-pointer",
+                  isDark 
+                    ? "bg-slate-800/50 border-slate-700/50 text-slate-200" 
+                    : "bg-gray-50 border-gray-300 text-gray-900"
+                )}
               >
                 <option value="nyc1">New York (NYC1)</option>
                 <option value="nyc3">New York (NYC3)</option>
@@ -519,11 +608,16 @@ function CreateDropletModal({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Size</label>
+              <label className={cn("block text-sm font-medium mb-1.5", isDark ? "text-slate-300" : "text-gray-700")}>Size</label>
               <select
                 value={form.size}
                 onChange={(e) => setForm((f) => ({ ...f, size: e.target.value }))}
-                className="w-full px-3 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all appearance-none cursor-pointer"
+                className={cn(
+                  "w-full px-3 py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all appearance-none cursor-pointer",
+                  isDark 
+                    ? "bg-slate-800/50 border-slate-700/50 text-slate-200" 
+                    : "bg-gray-50 border-gray-300 text-gray-900"
+                )}
               >
                 <option value="s-1vcpu-1gb">1 vCPU / 1 GB</option>
                 <option value="s-1vcpu-2gb">1 vCPU / 2 GB</option>
@@ -535,11 +629,16 @@ function CreateDropletModal({
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Image</label>
+            <label className={cn("block text-sm font-medium mb-1.5", isDark ? "text-slate-300" : "text-gray-700")}>Image</label>
             <select
               value={form.image}
               onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))}
-              className="w-full px-3 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all appearance-none cursor-pointer"
+              className={cn(
+                "w-full px-3 py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all appearance-none cursor-pointer",
+                isDark 
+                  ? "bg-slate-800/50 border-slate-700/50 text-slate-200" 
+                  : "bg-gray-50 border-gray-300 text-gray-900"
+              )}
             >
               <option value="ubuntu-24-04-x64">Ubuntu 24.04 LTS</option>
               <option value="ubuntu-22-04-x64">Ubuntu 22.04 LTS</option>
@@ -549,23 +648,31 @@ function CreateDropletModal({
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">
-              Tags <span className="text-slate-500 font-normal">(comma-separated)</span>
+            <label className={cn("block text-sm font-medium mb-1.5", isDark ? "text-slate-300" : "text-gray-700")}>
+              Tags <span className={cn("font-normal", isDark ? "text-slate-500" : "text-gray-500")}>(comma-separated)</span>
             </label>
             <input
               type="text"
               value={form.tags}
               onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
               placeholder="e.g., production, web, api"
-              className="w-full px-3 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
+              className={cn(
+                "w-full px-3 py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all",
+                isDark 
+                  ? "bg-slate-800/50 border-slate-700/50 text-slate-200 placeholder:text-slate-600" 
+                  : "bg-gray-50 border-gray-300 text-gray-900 placeholder:text-gray-400"
+              )}
             />
           </div>
         </div>
         
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-800 bg-slate-900/50">
+        <div className={cn("flex items-center justify-end gap-3 px-6 py-4 border-t", isDark ? "border-slate-800 bg-slate-900/50" : "border-gray-200 bg-gray-50")}>
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors"
+            className={cn(
+              "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+              isDark ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50" : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            )}
           >
             Cancel
           </button>
@@ -603,6 +710,9 @@ function AIActionModal({
   type: "create" | "reboot" | "delete" | "bulk-delete" | null;
   data: unknown;
 }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
   if (!open || !type) return null;
 
   const getTitle = () => {
@@ -644,39 +754,47 @@ function AIActionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="bg-[#0d1117] border border-[#30363d] rounded-xl shadow-2xl w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#30363d]">
+    <div className={cn("fixed inset-0 z-50 flex items-center justify-center", isDark ? "bg-black/60" : "bg-gray-900/50")}>
+      <div className={cn(
+        "rounded-xl shadow-2xl w-full max-w-md mx-4",
+        isDark 
+          ? "bg-[#0d1117] border border-[#30363d]" 
+          : "bg-white border border-gray-200"
+      )}>
+        <div className={cn("flex items-center justify-between px-6 py-4 border-b", isDark ? "border-[#30363d]" : "border-gray-200")}>
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-              <Bot className="w-4 h-4 text-blue-400" />
+            <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", isDark ? "bg-blue-500/20" : "bg-blue-100")}>
+              <Bot className={cn("w-4 h-4", isDark ? "text-blue-400" : "text-blue-600")} />
             </div>
-            <h3 className="text-lg font-semibold text-[#e6edf3]">{getTitle()}</h3>
+            <h3 className={cn("text-lg font-semibold", isDark ? "text-[#e6edf3]" : "text-gray-900")}>{getTitle()}</h3>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-[#30363d] rounded-lg text-[#7d8590]">
+          <button 
+            onClick={onClose} 
+            className={cn("p-1.5 rounded-lg", isDark ? "hover:bg-[#30363d] text-[#7d8590]" : "hover:bg-gray-100 text-gray-500")}
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="p-6">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center animate-pulse">
-              <RefreshCw className="w-6 h-6 text-blue-400 animate-spin" />
+            <div className={cn("w-12 h-12 rounded-full flex items-center justify-center animate-pulse", isDark ? "bg-blue-500/10" : "bg-blue-50")}>
+              <RefreshCw className={cn("w-6 h-6 animate-spin", isDark ? "text-blue-400" : "text-blue-600")} />
             </div>
             <div>
-              <p className="text-[#e6edf3] font-medium">{getDescription()}</p>
-              <p className="text-sm text-[#7d8590] mt-1">
+              <p className={cn("font-medium", isDark ? "text-[#e6edf3]" : "text-gray-900")}>{getDescription()}</p>
+              <p className={cn("text-sm mt-1", isDark ? "text-[#7d8590]" : "text-gray-500")}>
                 The AI is handling this action via MCP. Check the chat for updates.
               </p>
             </div>
           </div>
-          <div className="bg-[#161b22] rounded-lg p-4 border border-[#30363d]">
-            <p className="text-xs text-[#7d8590] uppercase tracking-wide mb-2">Action Details</p>
-            <pre className="text-xs text-[#e6edf3] overflow-auto max-h-32 whitespace-pre-wrap">
+          <div className={cn("rounded-lg p-4 border", isDark ? "bg-[#161b22] border-[#30363d]" : "bg-gray-50 border-gray-200")}>
+            <p className={cn("text-xs uppercase tracking-wide mb-2", isDark ? "text-[#7d8590]" : "text-gray-500")}>Action Details</p>
+            <pre className={cn("text-xs overflow-auto max-h-32 whitespace-pre-wrap", isDark ? "text-[#e6edf3]" : "text-gray-700")}>
               {JSON.stringify(data, null, 2)}
             </pre>
           </div>
         </div>
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-[#30363d] bg-[#161b22] rounded-b-xl">
+        <div className={cn("flex justify-end gap-3 px-6 py-4 border-t rounded-b-xl", isDark ? "border-[#30363d] bg-[#161b22]" : "border-gray-200 bg-gray-50")}>
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium"
@@ -1183,16 +1301,16 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, apiKeyReady = true
             items={kubernetes}
             columns={["Name", "Region", "Version", "Nodes", "Status"]}
             renderRow={(cluster: KubernetesClusterSummary) => (
-              <tr key={cluster.id} className="border-b border-[#30363d] hover:bg-[#161b22] transition-colors">
+              <tr key={cluster.id} className={cn("border-b transition-colors", isDark ? "border-slate-800/50 hover:bg-slate-800/30" : "border-gray-200 hover:bg-gray-50")}>
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-3">
                     <StatusDot status={cluster.status} />
-                    <span className="font-medium text-[#e6edf3]">{cluster.name}</span>
+                    <span className={cn("font-medium", isDark ? "text-slate-200" : "text-gray-900")}>{cluster.name}</span>
                   </div>
                 </td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">{cluster.region.toUpperCase()}</td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">v{cluster.version}</td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">{cluster.nodeCount}</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>{cluster.region.toUpperCase()}</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>v{cluster.version}</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>{cluster.nodeCount}</td>
                 <td className="py-3 px-4"><StatusBadge status={cluster.status} /></td>
               </tr>
             )}
@@ -1205,17 +1323,17 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, apiKeyReady = true
             items={databases}
             columns={["Name", "Engine", "Region", "Size", "Nodes", "Status"]}
             renderRow={(db: DatabaseSummary) => (
-              <tr key={db.id} className="border-b border-[#30363d] hover:bg-[#161b22] transition-colors">
+              <tr key={db.id} className={cn("border-b transition-colors", isDark ? "border-slate-800/50 hover:bg-slate-800/30" : "border-gray-200 hover:bg-gray-50")}>
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-3">
                     <StatusDot status={db.status} />
-                    <span className="font-medium text-[#e6edf3]">{db.name}</span>
+                    <span className={cn("font-medium", isDark ? "text-slate-200" : "text-gray-900")}>{db.name}</span>
                   </div>
                 </td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">{db.engine} {db.version}</td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">{db.region.toUpperCase()}</td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">{db.size}</td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">{db.numNodes}</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>{db.engine} {db.version}</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>{db.region.toUpperCase()}</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>{db.size}</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>{db.numNodes}</td>
                 <td className="py-3 px-4"><StatusBadge status={db.status} /></td>
               </tr>
             )}
@@ -1228,12 +1346,12 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, apiKeyReady = true
             items={domains}
             columns={["Domain", "TTL", "Records"]}
             renderRow={(domain: DomainSummary) => (
-              <tr key={domain.name} className="border-b border-[#30363d] hover:bg-[#161b22] transition-colors">
+              <tr key={domain.name} className={cn("border-b transition-colors", isDark ? "border-slate-800/50 hover:bg-slate-800/30" : "border-gray-200 hover:bg-gray-50")}>
                 <td className="py-3 px-4">
-                  <span className="font-medium text-[#e6edf3]">{domain.name}</span>
+                  <span className={cn("font-medium", isDark ? "text-slate-200" : "text-gray-900")}>{domain.name}</span>
                 </td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">{domain.ttl}s</td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">{domain.recordCount}</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>{domain.ttl}s</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>{domain.recordCount}</td>
               </tr>
             )}
           />
@@ -1245,14 +1363,14 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, apiKeyReady = true
             items={volumes}
             columns={["Name", "Region", "Size", "Filesystem", "Attached"]}
             renderRow={(vol: VolumeSummary) => (
-              <tr key={vol.id} className="border-b border-[#30363d] hover:bg-[#161b22] transition-colors">
+              <tr key={vol.id} className={cn("border-b transition-colors", isDark ? "border-slate-800/50 hover:bg-slate-800/30" : "border-gray-200 hover:bg-gray-50")}>
                 <td className="py-3 px-4">
-                  <span className="font-medium text-[#e6edf3]">{vol.name}</span>
+                  <span className={cn("font-medium", isDark ? "text-slate-200" : "text-gray-900")}>{vol.name}</span>
                 </td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">{vol.region.toUpperCase()}</td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">{vol.sizeGigabytes} GB</td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">{vol.filesystemType || "—"}</td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">{vol.dropletIds.length > 0 ? `${vol.dropletIds.length} droplet(s)` : "Unattached"}</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>{vol.region.toUpperCase()}</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>{vol.sizeGigabytes} GB</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>{vol.filesystemType || "—"}</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>{vol.dropletIds.length > 0 ? `${vol.dropletIds.length} droplet(s)` : "Unattached"}</td>
               </tr>
             )}
           />
@@ -1264,17 +1382,17 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, apiKeyReady = true
             items={firewalls}
             columns={["Name", "Status", "Inbound Rules", "Outbound Rules", "Droplets"]}
             renderRow={(fw: FirewallSummary) => (
-              <tr key={fw.id} className="border-b border-[#30363d] hover:bg-[#161b22] transition-colors">
+              <tr key={fw.id} className={cn("border-b transition-colors", isDark ? "border-slate-800/50 hover:bg-slate-800/30" : "border-gray-200 hover:bg-gray-50")}>
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-3">
                     <StatusDot status={fw.status} />
-                    <span className="font-medium text-[#e6edf3]">{fw.name}</span>
+                    <span className={cn("font-medium", isDark ? "text-slate-200" : "text-gray-900")}>{fw.name}</span>
                   </div>
                 </td>
                 <td className="py-3 px-4"><StatusBadge status={fw.status} /></td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">{fw.inboundRuleCount}</td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">{fw.outboundRuleCount}</td>
-                <td className="py-3 px-4 text-sm text-[#7d8590]">{fw.dropletIds.length}</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>{fw.inboundRuleCount}</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>{fw.outboundRuleCount}</td>
+                <td className={cn("py-3 px-4 text-sm", isDark ? "text-slate-400" : "text-gray-500")}>{fw.dropletIds.length}</td>
               </tr>
             )}
           />

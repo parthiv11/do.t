@@ -14,6 +14,7 @@ import {
 import { createMarkdownComponents } from "@/components/tambo/markdown-components";
 import { Streamdown } from "streamdown";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/theme-provider";
 
 /**
  * Modal component for configuring client-side MCP (Model Context Protocol) servers.
@@ -36,6 +37,9 @@ export const McpConfigModal = ({
   onClose: () => void;
   className?: string;
 }) => {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
   // Initialize from localStorage directly to avoid conflicts
   const [mcpServers, setMcpServers] = React.useState<McpServerInfo[]>(() => {
     if (typeof window === "undefined") return [];
@@ -360,9 +364,14 @@ function MyApp() {
 
           {/* Success Message */}
           {savedSuccess && (
-            <div className="mb-6 p-3 bg-green-50 border border-green-200 text-green-800 rounded-lg text-sm animate-in slide-in-from-top-1 duration-200">
+            <div className={cn(
+              "mb-6 p-3 rounded-lg text-sm animate-in slide-in-from-top-1 duration-200",
+              isDark 
+                ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400" 
+                : "bg-emerald-50 border border-emerald-200 text-emerald-800"
+            )}>
               <div className="flex items-center">
-                <span className="text-green-600 mr-2">✓</span>
+                <span className={cn("mr-2", isDark ? "text-emerald-400" : "text-emerald-600")}>✓</span>
                 Servers saved to browser storage
               </div>
             </div>
@@ -384,7 +393,10 @@ function MyApp() {
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center mb-1">
-                          <div className="w-2 h-2 bg-green-500 rounded-full mr-3 flex-shrink-0"></div>
+                          <div className={cn(
+                            "w-2 h-2 rounded-full mr-3 flex-shrink-0",
+                            isDark ? "bg-emerald-500" : "bg-emerald-500"
+                          )}></div>
                           <span className="text-foreground font-medium truncate">
                             {serverInfo.url}
                           </span>
@@ -403,7 +415,7 @@ function MyApp() {
                           {serverInfo.hasAuth && (
                             <div className="text-sm text-muted-foreground">
                               <span className="font-medium">Auth:</span>{" "}
-                              <span className="text-green-600">✓ Configured</span>
+                              <span className={isDark ? "text-emerald-400" : "text-emerald-600"}>✓ Configured</span>
                             </div>
                           )}
                         </div>

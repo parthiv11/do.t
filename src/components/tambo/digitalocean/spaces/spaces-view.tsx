@@ -20,6 +20,8 @@ import {
   Database,
   RefreshCw,
 } from "lucide-react";
+import { useTheme } from "@/components/theme-provider";
+import { cn } from "@/lib/utils";
 
 type SpacesViewProps = {
   bucketName?: string;
@@ -45,6 +47,8 @@ function formatBytes(bytes: number): string {
 }
 
 const SpacesView: React.FC<SpacesViewProps> = (props) => {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const {
     bucketName = "my-bucket",
     region = "nyc3",
@@ -128,9 +132,15 @@ const SpacesView: React.FC<SpacesViewProps> = (props) => {
   const publicUrl = `https://${bucketName}.${region}.${endpoint}`;
 
   return (
-    <div className="w-full max-w-3xl bg-[#0d1117] border border-gray-700 rounded-lg overflow-hidden text-gray-100">
+    <div className={cn(
+      "w-full max-w-3xl border rounded-lg overflow-hidden",
+      isDark ? "bg-[#0d1117] border-gray-700 text-gray-100" : "bg-white border-gray-300 text-gray-900"
+    )}>
       {/* Header */}
-      <div className="px-6 py-5 border-b border-gray-700 bg-[#161b22]">
+      <div className={cn(
+        "px-6 py-5 border-b",
+        isDark ? "border-gray-700 bg-[#161b22]" : "border-gray-300 bg-gray-50"
+      )}>
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-lg bg-purple-600 flex items-center justify-center">
@@ -139,12 +149,12 @@ const SpacesView: React.FC<SpacesViewProps> = (props) => {
             <div>
               <h2 className="text-xl font-semibold">{bucketName}</h2>
               <div className="flex items-center gap-2 mt-1">
-                <Globe className="w-3.5 h-3.5 text-gray-400" />
-                <span className="text-sm text-gray-400">{region}</span>
-                <span className="text-gray-600">|</span>
-                <span className="text-sm text-gray-400">{totalObjects} objects</span>
-                <span className="text-gray-600">|</span>
-                <span className="text-sm text-gray-400">{totalSize}</span>
+                <Globe className={cn("w-3.5 h-3.5", isDark ? "text-gray-400" : "text-gray-500")} />
+                <span className={cn("text-sm", isDark ? "text-gray-400" : "text-gray-500")}>{region}</span>
+                <span className={isDark ? "text-gray-600" : "text-gray-300"}>|</span>
+                <span className={cn("text-sm", isDark ? "text-gray-400" : "text-gray-500")}>{totalObjects} objects</span>
+                <span className={isDark ? "text-gray-600" : "text-gray-300"}>|</span>
+                <span className={cn("text-sm", isDark ? "text-gray-400" : "text-gray-500")}>{totalSize}</span>
               </div>
             </div>
           </div>
@@ -152,7 +162,10 @@ const SpacesView: React.FC<SpacesViewProps> = (props) => {
             <button
               onClick={handleRefresh}
               disabled={loading}
-              className="p-2 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+              className={cn(
+                "p-2 rounded transition-colors",
+                isDark ? "hover:bg-gray-700 text-gray-400 hover:text-white" : "hover:bg-gray-200 text-gray-500 hover:text-gray-900"
+              )}
               title="Refresh"
             >
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
@@ -161,7 +174,10 @@ const SpacesView: React.FC<SpacesViewProps> = (props) => {
               href={publicUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-2 rounded-md border border-gray-600 hover:bg-gray-700 text-sm font-medium transition-colors"
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                isDark ? "border border-gray-600 hover:bg-gray-700" : "border border-gray-300 hover:bg-gray-100"
+              )}
             >
               <ExternalLink className="w-4 h-4" />
               Open
@@ -171,27 +187,35 @@ const SpacesView: React.FC<SpacesViewProps> = (props) => {
       </div>
 
       {/* Breadcrumb */}
-      <div className="px-6 py-2 border-b border-gray-700 bg-[#0d1117] flex items-center gap-2 text-sm">
+      <div className={cn(
+        "px-6 py-2 border-b flex items-center gap-2 text-sm",
+        isDark ? "border-gray-700 bg-[#0d1117]" : "border-gray-300 bg-white"
+      )}>
         <button
           onClick={() => setCurrentPath("/")}
           className={cn(
-            "hover:text-white transition-colors",
-            currentPath === "/" ? "text-white" : "text-blue-400"
+            "transition-colors",
+            currentPath === "/" 
+              ? (isDark ? "text-white" : "text-gray-900")
+              : "text-blue-400"
           )}
         >
           {bucketName}
         </button>
         {currentPath && currentPath !== "/" && (
           <>
-            <span className="text-gray-600">/</span>
-            <span className="text-white">{(currentPath || "").split("/").filter(Boolean).pop()}</span>
+            <span className={isDark ? "text-gray-600" : "text-gray-300"}>/</span>
+            <span className={isDark ? "text-white" : "text-gray-900"}>{(currentPath || "").split("/").filter(Boolean).pop()}</span>
           </>
         )}
       </div>
 
       {/* Feedback */}
       {actionFeedback && (
-        <div className="mx-6 mt-4 px-4 py-2 rounded-md bg-green-500/20 text-green-400 text-sm flex items-center gap-2">
+        <div className={cn(
+          "mx-6 mt-4 px-4 py-2 rounded-md text-sm flex items-center gap-2",
+          isDark ? "bg-emerald-500/20 text-emerald-400" : "bg-emerald-100 text-emerald-700"
+        )}>
           <CheckCircle2 className="w-4 h-4" />
           {actionFeedback}
         </div>
@@ -201,10 +225,10 @@ const SpacesView: React.FC<SpacesViewProps> = (props) => {
       {uploadProgress !== null && (
         <div className="mx-6 mt-4">
           <div className="flex items-center justify-between text-sm mb-1">
-            <span className="text-gray-400">Uploading...</span>
-            <span className="text-white">{uploadProgress}%</span>
+            <span className={isDark ? "text-gray-400" : "text-gray-500"}>Uploading...</span>
+            <span className={isDark ? "text-white" : "text-gray-900"}>{uploadProgress}%</span>
           </div>
-          <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+          <div className={cn("h-2 rounded-full overflow-hidden", isDark ? "bg-gray-700" : "bg-gray-200")}>
             <div
               className="h-full bg-blue-500 transition-all duration-300"
               style={{ width: `${uploadProgress}%` }}
@@ -215,10 +239,10 @@ const SpacesView: React.FC<SpacesViewProps> = (props) => {
 
       {/* Object List */}
       <div className="p-6">
-        <div className="bg-[#161b22] rounded-lg overflow-hidden">
+        <div className={cn("rounded-lg overflow-hidden", isDark ? "bg-[#161b22]" : "bg-gray-50")}>
           <table className="w-full">
-            <thead className="bg-[#0d1117]">
-              <tr className="text-left text-sm text-gray-400">
+            <thead className={isDark ? "bg-[#0d1117]" : "bg-white"}>
+              <tr className={cn("text-left text-sm", isDark ? "text-gray-400" : "text-gray-500")}>
                 <th className="py-2 px-4 font-medium">Name</th>
                 <th className="py-2 px-4 font-medium">Size</th>
                 <th className="py-2 px-4 font-medium">Modified</th>
@@ -231,8 +255,9 @@ const SpacesView: React.FC<SpacesViewProps> = (props) => {
                   key={obj.key}
                   onClick={() => handleNavigate(obj.key, obj.type)}
                   className={cn(
-                    "border-t border-gray-700 hover:bg-[#21262d] transition-colors cursor-pointer",
-                    selectedObject === obj.key && "bg-[#21262d]"
+                    "border-t transition-colors cursor-pointer",
+                    isDark ? "border-gray-700 hover:bg-[#21262d]" : "border-gray-300 hover:bg-gray-100",
+                    selectedObject === obj.key && (isDark ? "bg-[#21262d]" : "bg-gray-100")
                   )}
                 >
                   <td className="py-3 px-4">
@@ -242,15 +267,15 @@ const SpacesView: React.FC<SpacesViewProps> = (props) => {
                       ) : (
                         <FileText className="w-4 h-4 text-blue-400" />
                       )}
-                      <span className="text-sm text-white">
+                      <span className={cn("text-sm", isDark ? "text-white" : "text-gray-900")}>
                         {obj.key.split("/").pop()}
                       </span>
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-sm text-gray-400">
+                  <td className={cn("py-3 px-4 text-sm", isDark ? "text-gray-400" : "text-gray-500")}>
                     {obj.type === "file" ? formatBytes(obj.size) : "—"}
                   </td>
-                  <td className="py-3 px-4 text-sm text-gray-400">
+                  <td className={cn("py-3 px-4 text-sm", isDark ? "text-gray-400" : "text-gray-500")}>
                     {new Date(obj.lastModified).toLocaleDateString()}
                   </td>
                   <td className="py-3 px-4">
@@ -262,7 +287,10 @@ const SpacesView: React.FC<SpacesViewProps> = (props) => {
                               e.stopPropagation();
                               navigator.clipboard.writeText(`${publicUrl}/${obj.key}`);
                             }}
-                            className="p-1.5 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                            className={cn(
+                              "p-1.5 rounded transition-colors",
+                              isDark ? "hover:bg-gray-700 text-gray-400 hover:text-white" : "hover:bg-gray-200 text-gray-500 hover:text-gray-900"
+                            )}
                             title="Copy URL"
                           >
                             <Copy className="w-3.5 h-3.5" />
@@ -272,7 +300,10 @@ const SpacesView: React.FC<SpacesViewProps> = (props) => {
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="p-1.5 rounded hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                            className={cn(
+                              "p-1.5 rounded transition-colors",
+                              isDark ? "hover:bg-gray-700 text-gray-400 hover:text-white" : "hover:bg-gray-200 text-gray-500 hover:text-gray-900"
+                            )}
                             title="Open"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
@@ -298,15 +329,18 @@ const SpacesView: React.FC<SpacesViewProps> = (props) => {
           </table>
           {filteredObjects.length === 0 && (
             <div className="py-12 text-center">
-              <Folder className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-400">This folder is empty</p>
+              <Folder className={cn("w-12 h-12 mx-auto mb-3", isDark ? "text-gray-600" : "text-gray-300")} />
+              <p className={isDark ? "text-gray-400" : "text-gray-500"}>This folder is empty</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Actions */}
-      <div className="px-6 py-4 border-t border-gray-700 bg-[#161b22] flex items-center justify-between gap-3">
+      <div className={cn(
+        "px-6 py-4 border-t flex items-center justify-between gap-3",
+        isDark ? "border-gray-700 bg-[#161b22]" : "border-gray-300 bg-gray-50"
+      )}>
         <button
           onClick={() => void handleUpload()}
           disabled={loading || uploadProgress !== null}
@@ -315,7 +349,7 @@ const SpacesView: React.FC<SpacesViewProps> = (props) => {
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
           Upload Files
         </button>
-        <div className="text-sm text-gray-400">
+        <div className={cn("text-sm", isDark ? "text-gray-400" : "text-gray-500")}>
           Selected: {selectedObject || "None"}
         </div>
       </div>
@@ -323,10 +357,10 @@ const SpacesView: React.FC<SpacesViewProps> = (props) => {
   );
 };
 
-// Helper for className merging
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
-}
+// Helper for className merging - using shared utils
+// function cn(...classes: (string | boolean | undefined)[]) {
+//   return classes.filter(Boolean).join(" ");
+// }
 
 export const spacesViewComponent: TamboComponent = {
   name: "spacesView",
