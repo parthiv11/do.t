@@ -18,9 +18,9 @@ export function TamboApiKeyInput({ onApiKeySubmit, onClose }: TamboApiKeyInputPr
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
-  // Tambo API keys start with "tk_" and are typically longer
+  // Tambo API keys start with "tambo_" and are typically longer
   const isValid = useMemo(() => {
-    return apiKey.length >= 20 && /^tk_[a-zA-Z0-9_-]+$/.test(apiKey);
+    return apiKey.length >= 20 && /^tambo_[a-zA-Z0-9_-]+$/.test(apiKey);
   }, [apiKey]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -95,7 +95,7 @@ export function TamboApiKeyInput({ onApiKeySubmit, onClose }: TamboApiKeyInputPr
                 type={showApiKey ? "text" : "password"}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="tk_..."
+                placeholder="tambo_..."
                 className={cn(
                   "w-full pl-10 pr-12 py-3 rounded-lg border text-sm transition-colors",
                   isDark 
@@ -120,7 +120,7 @@ export function TamboApiKeyInput({ onApiKeySubmit, onClose }: TamboApiKeyInputPr
                 isDark ? "text-rose-400" : "text-rose-600"
               )}>
                 <AlertTriangle className="w-3.5 h-3.5" />
-                Key should start with &quot;tk_&quot; and be at least 20 characters
+                Key should start with &quot;tambo_&quot; and be at least 20 characters
               </p>
             )}
           </div>
