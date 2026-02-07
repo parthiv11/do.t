@@ -34,6 +34,7 @@ import {
   Monitor,
   Bot,
   Sparkles,
+  Rocket,
 } from "lucide-react";
 
 type DODashboardProps = React.HTMLAttributes<HTMLDivElement>;
@@ -75,31 +76,41 @@ async function fetchDroplets(): Promise<DropletSummary[]> {
     : [];
 }
 
-const RESOURCE_INFO: Record<string, { title: string; description: string; createLabel: string }> = {
+const RESOURCE_INFO: Record<string, { title: string; description: string; createLabel: string; implemented: boolean; comingSoonText: string }> = {
   kubernetes: {
     title: "Kubernetes Clusters",
     description: "Managed Kubernetes clusters for container orchestration. Deploy, manage, and scale containerized applications.",
     createLabel: "Create Cluster",
+    implemented: false,
+    comingSoonText: "Kubernetes support is planned for a future release. You'll be able to deploy and manage containerized applications with ease.",
   },
   databases: {
     title: "Managed Databases",
     description: "Fully managed database clusters with automated backups, scaling, and high availability.",
     createLabel: "Create Database",
+    implemented: false,
+    comingSoonText: "Managed Databases are on our roadmap. Soon you'll be able to provision PostgreSQL, MySQL, and Redis clusters.",
   },
   domains: {
     title: "Domains",
     description: "Manage DNS records for your domains. Point your domains to DigitalOcean resources.",
     createLabel: "Add Domain",
+    implemented: false,
+    comingSoonText: "Domain & DNS management is coming soon. You'll be able to manage DNS records directly from the dashboard.",
   },
   volumes: {
     title: "Volumes",
     description: "Block storage volumes that can be attached to Droplets. Persistent storage for your data.",
     createLabel: "Create Volume",
+    implemented: false,
+    comingSoonText: "Block Storage Volumes are planned for future release. Attach persistent storage to your droplets.",
   },
   firewalls: {
     title: "Firewalls",
     description: "Cloud firewalls to secure your infrastructure. Control inbound and outbound traffic.",
     createLabel: "Create Firewall",
+    implemented: false,
+    comingSoonText: "Cloud Firewalls are coming in a future update. Secure your infrastructure with ease.",
   },
 };
 
@@ -108,14 +119,55 @@ function ResourcePlaceholder({ resourceType, icon: Icon }: { resourceType: strin
     title: resourceType.charAt(0).toUpperCase() + resourceType.slice(1),
     description: "Manage your resources.",
     createLabel: "Create",
+    implemented: true,
+    comingSoonText: "",
   };
+
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
+  // Show Coming Soon for unimplemented features
+  if (info.implemented === false) {
+    return (
+      <>
+        <div className={cn(
+          "flex items-center justify-between px-6 py-4 border-b",
+          isDark ? "border-slate-800/50" : "border-gray-200"
+        )}>
+          <div>
+            <h1 className={cn("text-xl font-semibold", isDark ? "text-slate-100" : "text-gray-900")}>{info.title}</h1>
+            <p className={cn("text-sm", isDark ? "text-slate-500" : "text-gray-500")}>Coming Soon</p>
+          </div>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+          <div className={cn(
+            "w-20 h-20 rounded-full flex items-center justify-center mb-6",
+            isDark ? "bg-indigo-500/10" : "bg-indigo-100"
+          )}>
+            <Rocket className={cn("w-10 h-10", isDark ? "text-indigo-400" : "text-indigo-600")} />
+          </div>
+          <h2 className={cn("text-xl font-semibold mb-2", isDark ? "text-slate-100" : "text-gray-900")}>{info.title} - Coming Soon</h2>
+          <p className={cn("mb-4 max-w-md", isDark ? "text-slate-400" : "text-gray-600")}>{info.comingSoonText}</p>
+          <div className={cn(
+            "px-4 py-2 rounded-full text-sm font-medium",
+            isDark ? "bg-amber-500/10 text-amber-400" : "bg-amber-100 text-amber-600"
+          )}>
+            Planned for Future Release
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#21262d]">
+      <div className={cn(
+        "flex items-center justify-between px-6 py-4 border-b",
+        isDark ? "border-slate-800/50" : "border-gray-200"
+      )}>
         <div>
-          <h1 className="text-xl font-semibold">{info.title}</h1>
-          <p className="text-sm text-[#7d8590]">0 resources</p>
+          <h1 className={cn("text-xl font-semibold", isDark ? "text-slate-100" : "text-gray-900")}>{info.title}</h1>
+          <p className={cn("text-sm", isDark ? "text-slate-500" : "text-gray-500")}>0 resources</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">
           <Plus className="w-4 h-4" />
@@ -123,11 +175,14 @@ function ResourcePlaceholder({ resourceType, icon: Icon }: { resourceType: strin
         </button>
       </div>
       <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-        <div className="w-20 h-20 rounded-full bg-[#161b22] flex items-center justify-center mb-6">
-          <Icon className="w-10 h-10 text-[#30363d]" />
+        <div className={cn(
+          "w-20 h-20 rounded-full flex items-center justify-center mb-6",
+          isDark ? "bg-slate-800/50" : "bg-gray-100"
+        )}>
+          <Icon className={cn("w-10 h-10", isDark ? "text-slate-600" : "text-gray-400")} />
         </div>
-        <h2 className="text-xl font-semibold mb-2">No {info.title} Yet</h2>
-        <p className="text-[#7d8590] mb-6 max-w-md">{info.description}</p>
+        <h2 className={cn("text-xl font-semibold mb-2", isDark ? "text-slate-100" : "text-gray-900")}>No {info.title} Yet</h2>
+        <p className={cn("mb-6 max-w-md", isDark ? "text-slate-400" : "text-gray-600")}>{info.description}</p>
         <button className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium">
           <Plus className="w-4 h-4" />
           {info.createLabel}
@@ -644,7 +699,8 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
 
   const selectedSet = React.useMemo(() => new Set(selectedDropletIds), [selectedDropletIds]);
 
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
 
   const kubernetes = useInfraStore((s) => s.kubernetes);
   const databases = useInfraStore((s) => s.databases);
@@ -687,6 +743,21 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
       return () => clearTimeout(timer);
     }
   }, [actionFeedback]);
+
+  // Warn users when navigating away from the dashboard
+  React.useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Only warn if there are pending operations (loading state or selected droplets)
+      if (loading || selectedSet.size > 0) {
+        e.preventDefault();
+        e.returnValue = "You have pending operations. Are you sure you want to leave?";
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [loading, selectedSet.size]);
 
   const toggleSelect = (id: number) => {
     const next = new Set(selectedSet);
@@ -780,24 +851,38 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
   };
 
   return (
-    <div className={cn("w-full h-full flex bg-slate-950 text-slate-200", className)} {...props}>
+    <div className={cn(
+      "w-full h-full flex",
+      isDark ? "bg-slate-950 text-slate-200" : "bg-gray-50 text-gray-900",
+      className
+    )} {...props}>
       {/* Sidebar */}
-      <div className="w-64 flex-shrink-0 border-r border-slate-800/50 bg-slate-900/50 backdrop-blur-xl flex flex-col">
+      <div className={cn(
+        "w-64 flex-shrink-0 border-r flex flex-col",
+        isDark ? "border-slate-800/50 bg-slate-900/50" : "border-gray-200 bg-white"
+      )}>
         {/* Branding */}
-        <div className="p-5 border-b border-slate-800/50">
+        <div className={cn("p-5 border-b", isDark ? "border-slate-800/50" : "border-gray-200")}>
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 shadow-lg shadow-indigo-500/25">
-              <Server className="w-5 h-5 text-white" />
+            <div className="relative w-10 h-10 flex-shrink-0">
+              <img
+                src={theme === "light" ? "/light-theme-logo.png" : "/dark-theme-logo.png"}
+                alt="DO.T"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
-              <span className="text-lg font-bold bg-gradient-to-r from-slate-100 to-slate-400 bg-clip-text text-transparent">DO.T</span>
-              <p className="text-[10px] text-slate-500 font-medium">Chat-first DigitalOcean</p>
+              <span className={cn(
+                "text-lg font-bold bg-gradient-to-r bg-clip-text text-transparent",
+                isDark ? "from-slate-100 to-slate-400" : "from-gray-900 to-gray-600"
+              )}>DO.T</span>
+              <p className={cn("text-[10px] font-medium", isDark ? "text-slate-500" : "text-gray-500")}>Chat-first DigitalOcean</p>
             </div>
           </div>
         </div>
         
         <nav className="flex-1 py-3 px-3">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 mb-2">Infrastructure</div>
+          <div className={cn("text-xs font-semibold uppercase tracking-wider px-3 mb-2", isDark ? "text-slate-500" : "text-gray-500")}>Infrastructure</div>
           {navItems.map((item) => (
             <button
               key={item.id}
@@ -805,21 +890,27 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-lg transition-all duration-200",
                 activeNav === item.id
-                  ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                  ? isDark
+                    ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
+                    : "bg-indigo-50 text-indigo-600 border border-indigo-200"
+                  : isDark
+                    ? "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
               )}
             >
               <div className="flex items-center gap-3">
                 <div className={cn(
                   "p-1.5 rounded-md transition-colors",
-                  activeNav === item.id ? "bg-indigo-500/20" : "bg-slate-800/50"
+                  activeNav === item.id
+                    ? isDark ? "bg-indigo-500/20" : "bg-indigo-100"
+                    : isDark ? "bg-slate-800/50" : "bg-gray-100"
                 )}>
                   <item.icon className="w-4 h-4" />
                 </div>
                 {item.label}
               </div>
               {item.count !== undefined && item.count > 0 && (
-                <span className="text-xs bg-slate-800 px-2 py-0.5 rounded-full text-slate-400 font-medium">
+                <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", isDark ? "bg-slate-800 text-slate-400" : "bg-gray-100 text-gray-600")}>
                   {item.count}
                 </span>
               )}
@@ -828,15 +919,15 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
         </nav>
         
         {/* Theme Toggle */}
-        <div className="p-4 border-t border-slate-800/50">
+        <div className={cn("p-4 border-t", isDark ? "border-slate-800/50" : "border-gray-200")}>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-slate-500">Theme</span>
-            <div className="flex gap-1 bg-slate-800/50 p-1 rounded-lg">
+            <span className={cn("text-xs font-medium", isDark ? "text-slate-500" : "text-gray-500")}>Theme</span>
+            <div className={cn("flex gap-1 p-1 rounded-lg", isDark ? "bg-slate-800/50" : "bg-gray-100")}>
               <button
                 onClick={() => setTheme("light")}
                 className={cn(
                   "p-1.5 rounded-md transition-all",
-                  theme === "light" ? "bg-slate-700 text-amber-400 shadow-sm" : "text-slate-500 hover:text-slate-300"
+                  theme === "light" ? "bg-white text-amber-500 shadow-sm" : isDark ? "text-slate-500 hover:text-slate-300" : "text-gray-500 hover:text-gray-700"
                 )}
                 title="Light"
               >
@@ -846,7 +937,7 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
                 onClick={() => setTheme("dark")}
                 className={cn(
                   "p-1.5 rounded-md transition-all",
-                  theme === "dark" ? "bg-slate-700 text-indigo-400 shadow-sm" : "text-slate-500 hover:text-slate-300"
+                  theme === "dark" ? "bg-slate-700 text-indigo-400 shadow-sm" : isDark ? "text-slate-500 hover:text-slate-300" : "text-gray-500 hover:text-gray-700"
                 )}
                 title="Dark"
               >
@@ -856,7 +947,7 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
                 onClick={() => setTheme("system")}
                 className={cn(
                   "p-1.5 rounded-md transition-all",
-                  theme === "system" ? "bg-slate-700 text-slate-300 shadow-sm" : "text-slate-500 hover:text-slate-300"
+                  theme === "system" ? (isDark ? "bg-slate-700 text-slate-300" : "bg-gray-200 text-gray-700") + " shadow-sm" : isDark ? "text-slate-500 hover:text-slate-300" : "text-gray-500 hover:text-gray-700"
                 )}
                 title="System"
               >
@@ -866,22 +957,22 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
           </div>
           
           {/* Powered by */}
-          <div className="flex items-center justify-center gap-2 pt-3 border-t border-slate-800/50">
-            <Sparkles className="w-3 h-3 text-indigo-400" />
-            <span className="text-[10px] text-slate-500 font-medium">Powered by AI</span>
+          <div className={cn("flex items-center justify-center gap-2 pt-3 border-t", isDark ? "border-slate-800/50" : "border-gray-200")}>
+            <Sparkles className="w-3 h-3 text-indigo-500" />
+            <span className={cn("text-[10px] font-medium", isDark ? "text-slate-500" : "text-gray-500")}>Powered by AI</span>
           </div>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-950">
+      <div className={cn("flex-1 flex flex-col min-w-0", isDark ? "bg-slate-950" : "bg-gray-50")}>
         {activeNav === "droplets" ? (
           <>
             {/* Header */}
-            <div className="flex items-center justify-between px-8 py-5 border-b border-slate-800/50 bg-slate-900/30 backdrop-blur-sm">
+            <div className={cn("flex items-center justify-between px-8 py-5 border-b backdrop-blur-sm", isDark ? "border-slate-800/50 bg-slate-900/30" : "border-gray-200 bg-white/50")}>
               <div>
-                <h1 className="text-2xl font-bold text-slate-100">Droplets</h1>
-                <p className="text-sm text-slate-500 mt-0.5">
+                <h1 className={cn("text-2xl font-bold", isDark ? "text-slate-100" : "text-gray-900")}>Droplets</h1>
+                <p className={cn("text-sm mt-0.5", isDark ? "text-slate-500" : "text-gray-500")}>
                   {droplets.length} virtual machine{droplets.length !== 1 ? "s" : ""} running
                 </p>
               </div>
@@ -889,7 +980,7 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
                 <button
                   onClick={() => void refresh()}
                   disabled={loading}
-                  className="p-2.5 rounded-xl hover:bg-slate-800/50 text-slate-400 hover:text-slate-200 transition-all disabled:opacity-50"
+                  className={cn("p-2.5 rounded-xl transition-all disabled:opacity-50", isDark ? "hover:bg-slate-800/50 text-slate-400 hover:text-slate-200" : "hover:bg-gray-100 text-gray-500 hover:text-gray-700")}
                   title="Refresh"
                 >
                   <RefreshCw className={cn("w-5 h-5", loading && "animate-spin")} />
@@ -906,17 +997,17 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
 
             {/* Feedback */}
             {actionFeedback && (
-              <div className="mx-8 mt-5 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-center gap-2 animate-in slide-in-from-top-2 duration-200">
+              <div className={cn("mx-8 mt-5 px-4 py-3 rounded-xl text-sm flex items-center gap-2 animate-in slide-in-from-top-2 duration-200", isDark ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400" : "bg-emerald-50 border border-emerald-200 text-emerald-600")}>
                 <CheckCircle2 className="w-4 h-4" />
                 {actionFeedback}
               </div>
             )}
 
             {error && (
-              <div className="mx-8 mt-5 px-4 py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm flex items-center gap-2 animate-in slide-in-from-top-2 duration-200">
+              <div className={cn("mx-8 mt-5 px-4 py-3 rounded-xl text-sm flex items-center gap-2 animate-in slide-in-from-top-2 duration-200", isDark ? "bg-rose-500/10 border border-rose-500/20 text-rose-400" : "bg-rose-50 border border-rose-200 text-rose-600")}>
                 <AlertCircle className="w-4 h-4" />
                 {error}
-                <button onClick={() => setError(null)} className="ml-auto hover:text-rose-300 transition-colors">
+                <button onClick={() => setError(null)} className={cn("ml-auto transition-colors", isDark ? "hover:text-rose-300" : "hover:text-rose-500")}>
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -924,15 +1015,15 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
 
             {/* Bulk actions */}
             {selectedSet.size > 0 && (
-              <div className="mx-8 mt-5 px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-800 flex items-center justify-between animate-in slide-in-from-top-2 duration-200">
-                <span className="text-sm text-slate-400">
-                  <span className="font-medium text-slate-200">{selectedSet.size}</span> droplets selected
+              <div className={cn("mx-8 mt-5 px-4 py-3 rounded-xl flex items-center justify-between animate-in slide-in-from-top-2 duration-200", isDark ? "bg-slate-900/50 border border-slate-800" : "bg-white border border-gray-200")}>
+                <span className={cn("text-sm", isDark ? "text-slate-400" : "text-gray-500")}>
+                  <span className={cn("font-medium", isDark ? "text-slate-200" : "text-gray-900")}>{selectedSet.size}</span> droplets selected
                 </span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleBulkDelete}
                     disabled={loading}
-                    className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50 font-medium"
+                    className={cn("flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-colors disabled:opacity-50 font-medium", isDark ? "text-rose-400 hover:bg-rose-500/10" : "text-rose-600 hover:bg-rose-50")}
                   >
                     <Trash2 className="w-4 h-4" />
                     Destroy
@@ -944,19 +1035,23 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
             {/* Content */}
             <div className="flex-1 overflow-auto p-8">
               {initialLoad && loading ? (
-                <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                <div className={cn("flex flex-col items-center justify-center h-full", isDark ? "text-slate-500" : "text-gray-500")}>
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full border-2 border-slate-700 border-t-indigo-500 animate-spin" />
+                    <div className={cn("w-12 h-12 rounded-full border-2 animate-spin", isDark ? "border-slate-700 border-t-indigo-500" : "border-gray-300 border-t-indigo-500")} />
                   </div>
                   <p className="mt-4 text-sm font-medium">Loading droplets...</p>
                 </div>
               ) : droplets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center px-6">
-                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center mb-6 border border-slate-800/50">
-                    <Server className="w-12 h-12 text-slate-600" />
+                  <div className={cn("w-24 h-24 rounded-2xl flex items-center justify-center mb-6 border p-4", isDark ? "bg-gradient-to-br from-slate-800 to-slate-900 border-slate-800/50" : "bg-gradient-to-br from-gray-100 to-gray-200 border-gray-200")}>
+                    <img
+                      src={theme === "light" ? "/light-theme-logo.png" : "/dark-theme-logo.png"}
+                      alt="DO.T"
+                      className="w-full h-full object-contain opacity-80"
+                    />
                   </div>
-                  <h2 className="text-2xl font-bold text-slate-200 mb-2">No Droplets Yet</h2>
-                  <p className="text-slate-500 mb-8 max-w-md text-sm leading-relaxed">
+                  <h2 className={cn("text-2xl font-bold mb-2", isDark ? "text-slate-200" : "text-gray-900")}>No Droplets Yet</h2>
+                  <p className={cn("mb-8 max-w-md text-sm leading-relaxed", isDark ? "text-slate-500" : "text-gray-500")}>
                     Droplets are virtual machines that run on DigitalOcean&apos;s infrastructure. Create your first droplet to get started.
                   </p>
                   <button
@@ -968,16 +1063,16 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
                   </button>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-slate-800/50 bg-slate-900/30 overflow-hidden">
+                <div className={cn("rounded-2xl border overflow-hidden", isDark ? "border-slate-800/50 bg-slate-900/30" : "border-gray-200 bg-white")}>
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-slate-800/50 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      <tr className={cn("border-b text-left text-xs font-semibold uppercase tracking-wider", isDark ? "border-slate-800/50 text-slate-500" : "border-gray-200 text-gray-500")}>
                         <th className="py-4 px-6 w-16">
                           <input
                             type="checkbox"
                             checked={selectedSet.size === droplets.length && droplets.length > 0}
                             onChange={selectAll}
-                            className="w-4 h-4 rounded border-slate-600 bg-slate-800/50 checked:bg-indigo-500 checked:border-indigo-500 transition-colors cursor-pointer"
+                            className={cn("w-4 h-4 rounded transition-colors cursor-pointer", isDark ? "border-slate-600 bg-slate-800/50 checked:bg-indigo-500 checked:border-indigo-500" : "border-gray-300 bg-gray-50 checked:bg-indigo-500 checked:border-indigo-500")}
                           />
                         </th>
                         <th className="py-4 px-6">Name</th>

@@ -4,6 +4,8 @@ import * as React from "react";
 import type { TamboComponent } from "@tambo-ai/react";
 import { useTamboComponentState, useTamboStreamStatus, useTamboThreadInput } from "@tambo-ai/react";
 import { z } from "zod";
+import { useTheme } from "@/components/theme-provider";
+import { cn } from "@/lib/utils";
 import {
   Server,
   Loader2,
@@ -63,6 +65,9 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
     defaultTags = [],
   } = props || {};
 
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
   // Use useTamboComponentState so AI can see and update state
   const [name, setName] = useTamboComponentState("name", defaultName, defaultName);
   const [region, setRegion] = useTamboComponentState("region", defaultRegion, defaultRegion);
@@ -104,26 +109,35 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
 
   if (success) {
     return (
-      <div className="w-full max-w-2xl bg-[#0d1117] border border-gray-700 rounded-lg overflow-hidden text-gray-100">
+      <div className={cn(
+        "w-full max-w-2xl border rounded-lg overflow-hidden",
+        isDark ? "bg-[#0d1117] border-gray-700 text-gray-100" : "bg-white border-gray-200 text-gray-900"
+      )}>
         <div className="p-6 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
-            <CheckCircle2 className="w-8 h-8 text-green-400" />
+          <div className={cn(
+            "w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center",
+            isDark ? "bg-emerald-500/20" : "bg-emerald-100"
+          )}>
+            <CheckCircle2 className={cn("w-8 h-8", isDark ? "text-emerald-400" : "text-emerald-600")} />
           </div>
           <h3 className="text-xl font-semibold mb-2">Droplet Created!</h3>
-          <p className="text-gray-400 mb-4">
-            Your droplet <span className="text-white font-medium">{name}</span> is being provisioned.
+          <p className={cn("mb-4", isDark ? "text-gray-400" : "text-gray-600")}>
+            Your droplet <span className={cn("font-medium", isDark ? "text-white" : "text-gray-900")}>{name}</span> is being provisioned.
           </p>
-          <div className="bg-[#161b22] rounded-lg p-4 text-left text-sm space-y-2">
+          <div className={cn(
+            "rounded-lg p-4 text-left text-sm space-y-2",
+            isDark ? "bg-[#161b22]" : "bg-gray-50"
+          )}>
             <div className="flex justify-between">
-              <span className="text-gray-400">Region</span>
+              <span className={isDark ? "text-gray-400" : "text-gray-600"}>Region</span>
               <span>{region}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Size</span>
+              <span className={isDark ? "text-gray-400" : "text-gray-600"}>Size</span>
               <span>{size}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Image</span>
+              <span className={isDark ? "text-gray-400" : "text-gray-600"}>Image</span>
               <span>{image}</span>
             </div>
           </div>
@@ -133,19 +147,25 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
   }
 
   return (
-    <div className="w-full max-w-2xl bg-[#0d1117] border border-gray-700 rounded-lg overflow-hidden text-gray-100">
-      <div className="px-6 py-4 border-b border-gray-700 flex items-center gap-3">
+    <div className={cn(
+      "w-full max-w-2xl border rounded-lg overflow-hidden",
+      isDark ? "bg-[#0d1117] border-gray-700 text-gray-100" : "bg-white border-gray-200 text-gray-900"
+    )}>
+      <div className={cn("px-6 py-4 border-b flex items-center gap-3", isDark ? "border-gray-700" : "border-gray-200")}>
         <div className="w-10 h-10 rounded bg-blue-600 flex items-center justify-center">
           <Server className="w-5 h-5 text-white" />
         </div>
         <div>
           <h2 className="text-lg font-semibold">{title}</h2>
-          <p className="text-sm text-gray-400">Configure your new Droplet</p>
+          <p className={cn("text-sm", isDark ? "text-gray-400" : "text-gray-600")}>Configure your new Droplet</p>
         </div>
       </div>
 
       {error && (
-        <div className="mx-6 mt-4 px-4 py-3 rounded-md bg-red-500/20 text-red-400 text-sm flex items-center gap-2">
+        <div className={cn(
+          "mx-6 mt-4 px-4 py-3 rounded-md text-sm flex items-center gap-2",
+          isDark ? "bg-red-500/20 text-red-400" : "bg-rose-50 text-rose-600"
+        )}>
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
         </div>
@@ -159,7 +179,12 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="my-droplet"
-            className="w-full px-4 py-3 rounded-md border border-gray-600 bg-[#161b22] text-white placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+            className={cn(
+              "w-full px-4 py-3 rounded-md border outline-none focus:ring-1",
+              isDark
+                ? "border-gray-600 bg-[#161b22] text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                : "border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500"
+            )}
           />
         </div>
 
@@ -170,7 +195,7 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
             className="w-full flex items-center justify-between text-sm font-medium mb-2"
           >
             <span>Region</span>
-            <div className="flex items-center gap-2 text-gray-400">
+            <div className={cn("flex items-center gap-2", isDark ? "text-gray-400" : "text-gray-600")}>
               <span>{REGIONS.find((r) => r.value === region)?.label || region}</span>
               <ChevronDown className={`w-4 h-4 transition-transform ${expandedSection === "region" ? "rotate-180" : ""}`} />
             </div>
@@ -181,11 +206,14 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
                 <button
                   key={r.value}
                   onClick={() => setRegion(r.value)}
-                  className={`px-3 py-2 rounded-md border text-left text-sm transition-colors ${
+                  className={cn(
+                    "px-3 py-2 rounded-md border text-left text-sm transition-colors",
                     region === r.value
-                      ? "border-blue-500 bg-blue-500/10 text-white"
-                      : "border-gray-600 bg-[#161b22] text-gray-300 hover:border-gray-500"
-                  }`}
+                      ? "border-blue-500 bg-blue-500/10 text-blue-600 dark:text-white"
+                      : isDark
+                        ? "border-gray-600 bg-[#161b22] text-gray-300 hover:border-gray-500"
+                        : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+                  )}
                 >
                   <span className="mr-2">{r.flag}</span>
                   {r.label}
@@ -202,7 +230,7 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
             className="w-full flex items-center justify-between text-sm font-medium mb-2"
           >
             <span>Size</span>
-            <div className="flex items-center gap-2 text-gray-400">
+            <div className={cn("flex items-center gap-2", isDark ? "text-gray-400" : "text-gray-600")}>
               <span>{SIZES.find((s) => s.value === size)?.ram || size}</span>
               <ChevronDown className={`w-4 h-4 transition-transform ${expandedSection === "size" ? "rotate-180" : ""}`} />
             </div>
@@ -213,19 +241,22 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
                 <button
                   key={s.value}
                   onClick={() => setSize(s.value)}
-                  className={`w-full px-4 py-3 rounded-md border text-left transition-colors ${
+                  className={cn(
+                    "w-full px-4 py-3 rounded-md border text-left transition-colors",
                     size === s.value
                       ? "border-blue-500 bg-blue-500/10"
-                      : "border-gray-600 bg-[#161b22] hover:border-gray-500"
-                  }`}
+                      : isDark
+                        ? "border-gray-600 bg-[#161b22] hover:border-gray-500"
+                        : "border-gray-300 bg-white hover:border-gray-400"
+                  )}
                 >
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="font-medium">{s.cpu}</span>
-                      <span className="text-gray-400 mx-2">·</span>
-                      <span className="text-gray-300">{s.ram}</span>
+                      <span className={cn("mx-2", isDark ? "text-gray-400" : "text-gray-500")}>·</span>
+                      <span className={isDark ? "text-gray-300" : "text-gray-700"}>{s.ram}</span>
                     </div>
-                    <span className="text-blue-400 font-medium">{s.price}</span>
+                    <span className="text-blue-500 font-medium">{s.price}</span>
                   </div>
                 </button>
               ))}
@@ -240,7 +271,7 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
             className="w-full flex items-center justify-between text-sm font-medium mb-2"
           >
             <span>Image</span>
-            <div className="flex items-center gap-2 text-gray-400">
+            <div className={cn("flex items-center gap-2", isDark ? "text-gray-400" : "text-gray-600")}>
               <span>{IMAGES.find((i) => i.value === image)?.label || image}</span>
               <ChevronDown className={`w-4 h-4 transition-transform ${expandedSection === "image" ? "rotate-180" : ""}`} />
             </div>
@@ -251,11 +282,14 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
                 <button
                   key={i.value}
                   onClick={() => setImage(i.value)}
-                  className={`px-4 py-3 rounded-md border text-left transition-colors ${
+                  className={cn(
+                    "px-4 py-3 rounded-md border text-left transition-colors",
                     image === i.value
                       ? "border-blue-500 bg-blue-500/10"
-                      : "border-gray-600 bg-[#161b22] hover:border-gray-500"
-                  }`}
+                      : isDark
+                        ? "border-gray-600 bg-[#161b22] hover:border-gray-500"
+                        : "border-gray-300 bg-white hover:border-gray-400"
+                  )}
                 >
                   <span className="mr-2">{i.icon}</span>
                   {i.label}
@@ -272,13 +306,21 @@ const DropletCreate: React.FC<DropletCreateProps> = (props) => {
             value={tags}
             onChange={(e) => setTags(e.target.value)}
             placeholder="web, production"
-            className="w-full px-4 py-3 rounded-md border border-gray-600 bg-[#161b22] text-white placeholder-gray-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+            className={cn(
+              "w-full px-4 py-3 rounded-md border outline-none focus:ring-1",
+              isDark
+                ? "border-gray-600 bg-[#161b22] text-white placeholder-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                : "border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500"
+            )}
           />
         </div>
       </div>
 
-      <div className="px-6 py-4 border-t border-gray-700 flex items-center justify-between bg-[#161b22]">
-        <div className="text-sm text-gray-400">
+      <div className={cn(
+        "px-6 py-4 border-t flex items-center justify-between",
+        isDark ? "border-gray-700 bg-[#161b22]" : "border-gray-200 bg-gray-50"
+      )}>
+        <div className={cn("text-sm", isDark ? "text-gray-400" : "text-gray-600")}>
           {SIZES.find((s) => s.value === size)?.price || ""}
         </div>
         <button

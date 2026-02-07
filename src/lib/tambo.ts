@@ -65,8 +65,7 @@ import {
  */
 
 export const tools: TamboTool[] = [
-  // Local API tools temporarily disabled - using MCP only
-  // ...digitalOceanTools,
+  ...digitalOceanTools,
   ...syncTools,
 ];
 
