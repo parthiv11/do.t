@@ -57,17 +57,19 @@ const InsightsView: React.FC<InsightsViewProps> = (props) => {
     timeRange = "24h",
   } = props || {};
 
-  // Tambo state for AI visibility
+  // Tambo state for AI visibility - use static timestamps to avoid impure calls during render
+  const now = "2024-01-01T00:00:00.000Z";
+  const oneHourAgo = "2023-12-31T23:00:00.000Z";
   const [metrics, setMetrics] = useTamboComponentState<Metric[]>("metrics", [
-    { name: "CPU Usage", value: 45.2, unit: "%", trend: "up", change: 5.3, timestamp: new Date().toISOString() },
-    { name: "Memory", value: 68.5, unit: "%", trend: "flat", change: 0, timestamp: new Date().toISOString() },
-    { name: "Disk I/O", value: 23.1, unit: "MB/s", trend: "down", change: -12.4, timestamp: new Date().toISOString() },
-    { name: "Network In", value: 156.3, unit: "KB/s", trend: "up", change: 23.1, timestamp: new Date().toISOString() },
-    { name: "Network Out", value: 89.7, unit: "KB/s", trend: "flat", change: 2.1, timestamp: new Date().toISOString() },
+    { name: "CPU Usage", value: 45.2, unit: "%", trend: "up", change: 5.3, timestamp: now },
+    { name: "Memory", value: 68.5, unit: "%", trend: "flat", change: 0, timestamp: now },
+    { name: "Disk I/O", value: 23.1, unit: "MB/s", trend: "down", change: -12.4, timestamp: now },
+    { name: "Network In", value: 156.3, unit: "KB/s", trend: "up", change: 23.1, timestamp: now },
+    { name: "Network Out", value: 89.7, unit: "KB/s", trend: "flat", change: 2.1, timestamp: now },
   ]);
   const [alerts, setAlerts] = useTamboComponentState<Alert[]>("alerts", [
-    { id: "1", severity: "warning", message: "High CPU usage detected on droplet-01", timestamp: new Date().toISOString(), resolved: false },
-    { id: "2", severity: "info", message: "Database backup completed successfully", timestamp: new Date(Date.now() - 3600000).toISOString(), resolved: true },
+    { id: "1", severity: "warning", message: "High CPU usage detected on droplet-01", timestamp: now, resolved: false },
+    { id: "2", severity: "info", message: "Database backup completed successfully", timestamp: oneHourAgo, resolved: true },
   ]);
   const [selectedTimeRange, setSelectedTimeRange] = useTamboComponentState("selectedTimeRange", timeRange);
   const [loading, setLoading] = useTamboComponentState("loading", false);
@@ -113,15 +115,13 @@ const InsightsView: React.FC<InsightsViewProps> = (props) => {
 
   const getResourceIcon = () => {
     switch (resourceType) {
-      case "droplet": return Server;
-      case "database": return Database;
-      case "kubernetes": return Droplets;
-      case "spaces": return HardDrive;
-      default: return Activity;
+      case "droplet": return <Server className="w-6 h-6 text-white" />;
+      case "database": return <Database className="w-6 h-6 text-white" />;
+      case "kubernetes": return <Droplets className="w-6 h-6 text-white" />;
+      case "spaces": return <HardDrive className="w-6 h-6 text-white" />;
+      default: return <Activity className="w-6 h-6 text-white" />;
     }
   };
-
-  const ResourceIcon = getResourceIcon();
 
   return (
     <div className="w-full max-w-4xl bg-[#0d1117] border border-gray-700 rounded-lg overflow-hidden text-gray-100">
@@ -130,7 +130,7 @@ const InsightsView: React.FC<InsightsViewProps> = (props) => {
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-lg bg-emerald-600 flex items-center justify-center">
-              <ResourceIcon className="w-6 h-6 text-white" />
+              {getResourceIcon()}
             </div>
             <div>
               <h2 className="text-xl font-semibold capitalize">
