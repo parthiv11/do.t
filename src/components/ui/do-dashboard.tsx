@@ -40,7 +40,9 @@ import {
   LogOut,
 } from "lucide-react";
 
-type DODashboardProps = React.HTMLAttributes<HTMLDivElement>;
+type DODashboardProps = React.HTMLAttributes<HTMLDivElement> & {
+  apiKeyReady?: boolean;
+};
 
 type NavItem = {
   id: string;
@@ -687,7 +689,7 @@ function AIActionModal({
   );
 }
 
-const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
+const DODashboard: React.FC<DODashboardProps> = ({ className, apiKeyReady = true, ...props }) => {
   const droplets = useInfraStore((s) => s.droplets);
   const setDroplets = useInfraStore((s) => s.setDroplets);
   const selectedDropletIds = useInfraStore((s) => s.selectedDropletIds);
@@ -748,12 +750,12 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
     }
   }, [initialLoad, refresh, token]);
 
-  // Show token input when no token is stored
+  // Show token input when no token is stored AND api key is ready
   React.useEffect(() => {
-    if (isReady && !token) {
+    if (isReady && !token && apiKeyReady) {
       setShowTokenInput(true);
     }
-  }, [isReady, token]);
+  }, [isReady, token, apiKeyReady]);
 
   React.useEffect(() => {
     if (actionFeedback) {
@@ -1012,8 +1014,8 @@ const DODashboard: React.FC<DODashboardProps> = ({ className, ...props }) => {
 
       {/* Main content */}
       <div className={cn("flex-1 flex flex-col min-w-0", isDark ? "bg-slate-950" : "bg-gray-50")}>
-        {/* Token Input Modal */}
-        {showTokenInput && (
+        {/* Token Input Modal - only show when API key is ready */}
+        {showTokenInput && apiKeyReady && (
           <TokenInput
             onTokenSubmit={(newToken) => {
               setToken(newToken);

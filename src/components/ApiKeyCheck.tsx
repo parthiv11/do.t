@@ -1,14 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { XIcon } from "lucide-react";
 
 interface ApiKeyCheckProps {
   children: React.ReactNode;
+  onApiKeyReady?: (isReady: boolean) => void;
 }
 
-export function ApiKeyCheck({ children }: ApiKeyCheckProps) {
+export function ApiKeyCheck({ children, onApiKeyReady }: ApiKeyCheckProps) {
   const [showApiKeyAlert, setShowApiKeyAlert] = useState(!process.env.NEXT_PUBLIC_TAMBO_API_KEY);
+
+  useEffect(() => {
+    onApiKeyReady?.(!showApiKeyAlert);
+  }, [showApiKeyAlert, onApiKeyReady]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
